@@ -1,6 +1,5 @@
 function initialiserClasseur() {
   const spreadsheet = SpreadsheetApp.getActive();
-  const ui = SpreadsheetApp.getUi();
   Object.keys(APP.headers).filter(function(sheetName) {
     return sheetName !== APP.sheets.publicData;
   }).forEach(function(sheetName) {
@@ -18,9 +17,11 @@ function initialiserClasseur() {
   applyValidations_();
   stylePublicSheet_(publicSpreadsheet);
   onOpen();
-  ui.alert('Initialisation terminée',
-    'Le classeur privé est prêt et le classeur public a été préparé. Les données existantes ont été conservées.\n\nClasseur public : ' + publicSpreadsheet.getUrl(),
-    ui.ButtonSet.OK);
+  spreadsheet.toast(
+    'Le classeur privé et le classeur public sont prêts. Les données existantes ont été conservées.',
+    'Initialisation terminée',
+    10
+  );
 }
 
 function seedSettings_() {
