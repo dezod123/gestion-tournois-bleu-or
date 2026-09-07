@@ -1,0 +1,10 @@
+.DS_Store
+Thumbs.db
+.clasp.json
+.env
+.env.*
+node_modules/
+
+# Documents historiques conservés localement seulement
+Cahier_des_charges_Tournoi_Bleu_Or_Manager.docx
+Ultimate_Tournament_Manager_v1.1_STABLE.xlsx
