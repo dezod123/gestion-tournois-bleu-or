@@ -26,9 +26,9 @@ jobs:
       - name: Configurer GitHub Pages
         uses: actions/configure-pages@v6
       - name: Préparer le site statique
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: site
       - name: Déployer
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
