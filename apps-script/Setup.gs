@@ -108,16 +108,16 @@ function chargerDonneesDemonstration() {
   if (answer !== ui.Button.YES) return;
 
   const spreadsheet = SpreadsheetApp.getActive();
-  spreadsheet.getSheetByName(APP.sheets.tournaments).appendRow([
+  spreadsheet.getSheetByName(APP.sheets.tournaments).getRange(2, 1, 1, APP.headers.TOURNOIS.length).setValues([[
     'T-DEMO', 'Tournoi Bleu & Or', 'Démonstration', 'ACTIF', true,
     new Date(2026, 10, 6), new Date(2026, 10, 8), 'École secondaire', 'Données fictives pour valider le fonctionnement.'
-  ]);
-  spreadsheet.getSheetByName(APP.sheets.divisions).appendRow([
+  ]]);
+  spreadsheet.getSheetByName(APP.sheets.divisions).getRange(2, 1, 1, APP.headers.DIVISIONS.length).setValues([[
     'D-DEMO', 'T-DEMO', 'Benjamin masculin', true, true, 1, 1, 2, 3, 1, 0, 'POINTS,DIFF,BP,NOM'
-  ]);
-  spreadsheet.getSheetByName(APP.sheets.venues).appendRow([
+  ]]);
+  spreadsheet.getSheetByName(APP.sheets.venues).getRange(2, 1, 1, APP.headers.LIEUX.length).setValues([[
     'GYM-1', 'T-DEMO', 'Gymnase 1', '', true, true
-  ]);
+  ]]);
   spreadsheet.getSheetByName(APP.sheets.teams).getRange(2, 1, 3, APP.headers.EQUIPES.length).setValues([
     ['E01', 'T-DEMO', 'D-DEMO', 'A', 'Les Aigles', 'École du Parc', 'APPROUVÉE', true],
     ['E02', 'T-DEMO', 'D-DEMO', 'A', 'Les Lynx', 'École des Sommets', 'APPROUVÉE', true],
@@ -129,4 +129,40 @@ function chargerDonneesDemonstration() {
     ['M03', 'T-DEMO', 'D-DEMO', 'A', 'POOL', '3', new Date(2026, 10, 7), new Date(1899, 11, 30, 11, 0), 'GYM-1', 'E03', 'E01', '', '', false, '', true]
   ]);
   ui.alert('Démonstration ajoutée', 'Vous pouvez maintenant choisir Tournoi → Publier les changements.', ui.ButtonSet.OK);
+}
+
+function reparerPositionDonneesDemonstration() {
+  const spreadsheet = SpreadsheetApp.getActive();
+  const moves = [
+    [APP.sheets.tournaments, 'T-DEMO', 2],
+    [APP.sheets.divisions, 'D-DEMO', 2],
+    [APP.sheets.venues, 'GYM-1', 2],
+    [APP.sheets.teams, 'E01', 2],
+    [APP.sheets.teams, 'E02', 3],
+    [APP.sheets.teams, 'E03', 4],
+    [APP.sheets.matches, 'M01', 2],
+    [APP.sheets.matches, 'M02', 3],
+    [APP.sheets.matches, 'M03', 4]
+  ];
+  let moved = 0;
+  moves.forEach(function(spec) {
+    const sheetName = spec[0];
+    const id = spec[1];
+    const targetRow = spec[2];
+    const sheet = spreadsheet.getSheetByName(sheetName);
+    const row = rowsAsObjects_(sheetName).find(function(item) {
+      return String(item[APP.headers[sheetName][0]] || '') === id;
+    });
+    if (!row || row.__row === targetRow) return;
+    const targetId = sheet.getRange(targetRow, 1).getValue();
+    if (targetId !== '' && targetId !== false && String(targetId) !== id) {
+      throw new Error(sheetName + ' ligne ' + targetRow + ' contient déjà ' + targetId + '. Réparation annulée.');
+    }
+    const width = APP.headers[sheetName].length;
+    const values = sheet.getRange(row.__row, 1, 1, width).getValues();
+    sheet.getRange(targetRow, 1, 1, width).setValues(values);
+    sheet.getRange(row.__row, 1, 1, width).clearContent();
+    moved += 1;
+  });
+  spreadsheet.toast(moved + ' ligne(s) de démonstration replacée(s) en haut des onglets.', 'Réparation terminée', 10);
 }
