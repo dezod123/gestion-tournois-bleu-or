@@ -3,6 +3,7 @@ function onOpen() {
     .createMenu('Tournoi')
     .addItem('Publier les changements', 'publierChangements')
     .addSeparator()
+    .addItem('Charger les données de démonstration', 'chargerDonneesDemonstration')
     .addItem('Initialiser / réparer le classeur', 'initialiserClasseur')
     .addToUi();
 }

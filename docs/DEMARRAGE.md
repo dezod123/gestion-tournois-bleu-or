@@ -24,6 +24,8 @@ Ne placez jamais de mot de passe, jeton Google ou jeton GitHub dans ce dépôt.
 7. Le script crée également un second classeur nommé `— DONNÉES PUBLIQUES`. Conserver son identifiant dans `PARAMETRES`.
 8. Recharger Google Sheets. Le menu **Tournoi** apparaîtra.
 
+Pour un premier essai sans saisie manuelle, choisir **Tournoi → Charger les données de démonstration**, puis **Tournoi → Publier les changements**. Le chargement de démonstration refuse de s'exécuter dès que les onglets concernés contiennent déjà des données.
+
 L'initialisation crée uniquement les onglets manquants et leurs en-têtes. Elle ne supprime pas les données existantes.
 
 ## Première publication

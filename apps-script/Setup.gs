@@ -31,6 +31,7 @@ function seedSettings_() {
     ['DERNIERE_PUBLICATION', '', 'Mise à jour automatiquement'],
     ['ID_CLASSEUR_ADMIN_LIE', '', 'Permet de détecter automatiquement une copie du gabarit'],
     ['ID_CLASSEUR_PUBLIC', '', 'Identifiant du classeur ne contenant que les données publiques'],
+    ['URL_CLASSEUR_PUBLIC', '', 'Lien pratique vers le classeur public'],
     ['MESSAGE_PUBLIC', '', 'Message facultatif affiché sur le site']
   ];
   const current = rowsAsObjects_(APP.sheets.settings).map(function(row) { return normalize_(row['Clé']); });
@@ -48,7 +49,8 @@ function applyValidations_() {
     [APP.sheets.venues, 5], [APP.sheets.venues, 6], [APP.sheets.teams, 8],
     [APP.sheets.matches, 14], [APP.sheets.matches, 16], [APP.sheets.photos, 8]
   ].forEach(function(spec) {
-    spreadsheet.getSheetByName(spec[0]).getRange(2, spec[1], 1000, 1).setDataValidation(checkboxValidation);
+    const sheet = spreadsheet.getSheetByName(spec[0]);
+    sheet.getRange(2, spec[1], sheet.getMaxRows() - 1, 1).setDataValidation(checkboxValidation);
   });
   [
     [APP.sheets.tournaments, 4, ['ACTIF', 'INACTIF']],
@@ -57,7 +59,8 @@ function applyValidations_() {
     [APP.sheets.matches, 5, ['POOL', 'DEMI-FINALE', 'FINALE', 'AMICAL']]
   ].forEach(function(spec) {
     const validation = SpreadsheetApp.newDataValidation().requireValueInList(spec[2], true).setAllowInvalid(false).build();
-    spreadsheet.getSheetByName(spec[0]).getRange(2, spec[1], 1000, 1).setDataValidation(validation);
+    const sheet = spreadsheet.getSheetByName(spec[0]);
+    sheet.getRange(2, spec[1], sheet.getMaxRows() - 1, 1).setDataValidation(validation);
   });
 }
 
@@ -79,6 +82,7 @@ function ensurePublicSpreadsheet_() {
   sheet.getRange(1, 1, 1, APP.headers.DONNEES_PUBLIQUES.length).setValues([APP.headers.DONNEES_PUBLIQUES]);
   upsertSetting_('ID_CLASSEUR_ADMIN_LIE', adminSpreadsheetId, 'Permet de détecter automatiquement une copie du gabarit');
   upsertSetting_('ID_CLASSEUR_PUBLIC', publicSpreadsheet.getId(), 'Identifiant du classeur ne contenant que les données publiques');
+  upsertSetting_('URL_CLASSEUR_PUBLIC', publicSpreadsheet.getUrl(), 'Lien pratique vers le classeur public');
   return publicSpreadsheet;
 }
 
@@ -87,4 +91,41 @@ function stylePublicSheet_(publicSpreadsheet) {
   sheet.setTabColor('#d4a72c');
   sheet.getRange('A1:D1').setNote('Généré automatiquement. Ne pas modifier manuellement. Publier uniquement cet onglet sur le Web.');
   sheet.setColumnWidth(4, 700);
+}
+
+function chargerDonneesDemonstration() {
+  const ui = SpreadsheetApp.getUi();
+  const sheetNames = [APP.sheets.tournaments, APP.sheets.divisions, APP.sheets.venues, APP.sheets.teams, APP.sheets.matches];
+  const containsData = sheetNames.some(function(name) { return rowsAsObjects_(name).length > 0; });
+  if (containsData) {
+    ui.alert('Données non ajoutées',
+      'Au moins un onglet contient déjà des données. Le chargement de démonstration ne remplace jamais vos données.', ui.ButtonSet.OK);
+    return;
+  }
+  const answer = ui.alert('Charger les données de démonstration?',
+    'Un petit tournoi fictif sera ajouté afin de tester la publication.', ui.ButtonSet.YES_NO);
+  if (answer !== ui.Button.YES) return;
+
+  const spreadsheet = SpreadsheetApp.getActive();
+  spreadsheet.getSheetByName(APP.sheets.tournaments).appendRow([
+    'T-DEMO', 'Tournoi Bleu & Or', 'Démonstration', 'ACTIF', true,
+    new Date(2026, 10, 6), new Date(2026, 10, 8), 'École secondaire', 'Données fictives pour valider le fonctionnement.'
+  ]);
+  spreadsheet.getSheetByName(APP.sheets.divisions).appendRow([
+    'D-DEMO', 'T-DEMO', 'Benjamin masculin', true, true, 1, 1, 2, 3, 1, 0, 'POINTS,DIFF,BP,NOM'
+  ]);
+  spreadsheet.getSheetByName(APP.sheets.venues).appendRow([
+    'GYM-1', 'T-DEMO', 'Gymnase 1', '', true, true
+  ]);
+  spreadsheet.getSheetByName(APP.sheets.teams).getRange(2, 1, 3, APP.headers.EQUIPES.length).setValues([
+    ['E01', 'T-DEMO', 'D-DEMO', 'A', 'Les Aigles', 'École du Parc', 'APPROUVÉE', true],
+    ['E02', 'T-DEMO', 'D-DEMO', 'A', 'Les Lynx', 'École des Sommets', 'APPROUVÉE', true],
+    ['E03', 'T-DEMO', 'D-DEMO', 'A', 'Le Phénix', 'École Centrale', 'APPROUVÉE', true]
+  ]);
+  spreadsheet.getSheetByName(APP.sheets.matches).getRange(2, 1, 3, APP.headers.MATCHS.length).setValues([
+    ['M01', 'T-DEMO', 'D-DEMO', 'A', 'POOL', '1', new Date(2026, 10, 6), new Date(1899, 11, 30, 17, 0), 'GYM-1', 'E01', 'E02', 3, 1, true, '', true],
+    ['M02', 'T-DEMO', 'D-DEMO', 'A', 'POOL', '2', new Date(2026, 10, 7), new Date(1899, 11, 30, 9, 0), 'GYM-1', 'E02', 'E03', '', '', false, '', true],
+    ['M03', 'T-DEMO', 'D-DEMO', 'A', 'POOL', '3', new Date(2026, 10, 7), new Date(1899, 11, 30, 11, 0), 'GYM-1', 'E03', 'E01', '', '', false, '', true]
+  ]);
+  ui.alert('Démonstration ajoutée', 'Vous pouvez maintenant choisir Tournoi → Publier les changements.', ui.ButtonSet.OK);
 }
