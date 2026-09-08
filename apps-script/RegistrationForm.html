@@ -31,6 +31,10 @@
       input,select { min-height: 46px; }
       textarea { min-height: 92px; resize: vertical; }
       input:focus,select:focus,textarea:focus,button:focus-visible { outline: 3px solid rgba(224,173,47,.55); outline-offset: 2px; border-color: var(--blue); }
+      input.is-invalid,select.is-invalid,textarea.is-invalid { color: #6f1717; background: #fff8f8; border-color: var(--danger); box-shadow: 0 0 0 1px rgba(161,38,38,.12); }
+      input.is-invalid:focus,select.is-invalid:focus,textarea.is-invalid:focus { outline-color: rgba(161,38,38,.28); border-color: var(--danger); }
+      .field-error { display: block; margin-top: 5px; color: var(--danger); font-size: .8rem; font-weight: 650; letter-spacing: 0; line-height: 1.35; text-transform: none; }
+      .field-error:empty { display: none; }
       .required::after { content: " *"; color: var(--danger); }
       .info { margin: 18px 0 0; padding: 16px; color: var(--navy); background: #eef5fb; border-left: 4px solid var(--blue); border-radius: 8px; }
       .info dl { display: grid; grid-template-columns: max-content 1fr; gap: 5px 14px; margin: 0; }
@@ -86,7 +90,8 @@
           <p class="section-help">Les choix proviennent directement de la configuration de l’organisation.</p>
           <div class="grid">
             <label class="full"><span class="required">Tournoi et édition</span>
-              <select id="tournament" required></select>
+              <select id="tournament" aria-describedby="tournament-error" required></select>
+              <span id="tournament-error" class="field-error" aria-live="polite"></span>
             </label>
           </div>
           <div id="tournament-info" class="info" hidden></div>
@@ -96,13 +101,13 @@
           <h2>École et responsable</h2>
           <p class="section-help">Ces renseignements demeurent dans le classeur administratif privé.</p>
           <div class="grid">
-            <label class="full"><span class="required">École</span><input id="school" autocomplete="organization" maxlength="140" required></label>
-            <label class="full"><span class="required">Adresse de l’école</span><input id="address" autocomplete="street-address" maxlength="180" required></label>
-            <label><span class="required">Ville</span><input id="city" autocomplete="address-level2" maxlength="100" required></label>
-            <label><span class="required">Code postal</span><input id="postal-code" autocomplete="postal-code" maxlength="16" required></label>
-            <label class="full"><span class="required">Nom du responsable</span><input id="contact-name" autocomplete="name" maxlength="140" required></label>
-            <label><span class="required">Téléphone</span><input id="phone" type="tel" autocomplete="tel" maxlength="40" required></label>
-            <label><span class="required">Courriel</span><input id="email" type="email" autocomplete="email" maxlength="160" required></label>
+            <label class="full"><span class="required">École</span><input id="school" autocomplete="organization" aria-describedby="school-error" maxlength="140" required><span id="school-error" class="field-error" aria-live="polite"></span></label>
+            <label class="full"><span class="required">Adresse de l’école</span><input id="address" autocomplete="street-address" aria-describedby="address-error" maxlength="180" required><span id="address-error" class="field-error" aria-live="polite"></span></label>
+            <label><span class="required">Ville</span><input id="city" autocomplete="address-level2" aria-describedby="city-error" maxlength="100" required><span id="city-error" class="field-error" aria-live="polite"></span></label>
+            <label><span class="required">Code postal</span><input id="postal-code" autocomplete="postal-code" autocapitalize="characters" inputmode="text" aria-describedby="postal-code-error" maxlength="7" placeholder="A1A 1A1" required><span id="postal-code-error" class="field-error" aria-live="polite"></span></label>
+            <label class="full"><span class="required">Nom du responsable</span><input id="contact-name" autocomplete="name" aria-describedby="contact-name-error" maxlength="140" required><span id="contact-name-error" class="field-error" aria-live="polite"></span></label>
+            <label><span class="required">Téléphone</span><input id="phone" type="tel" autocomplete="tel" inputmode="tel" aria-describedby="phone-error" maxlength="16" placeholder="514 555-1234" required><span id="phone-error" class="field-error" aria-live="polite"></span></label>
+            <label><span class="required">Courriel</span><input id="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" aria-describedby="email-error" maxlength="160" placeholder="nom@ecole.ca" required><span id="email-error" class="field-error" aria-live="polite"></span></label>
           </div>
         </section>
 
@@ -119,7 +124,8 @@
         <section>
           <h2>Confirmation</h2>
           <p class="privacy">Les renseignements seront utilisés par l’organisation pour analyser l’inscription et communiquer avec le responsable. Ils ne sont pas ajoutés aux données publiques du tournoi.</p>
-          <label class="consent"><input id="consent" type="checkbox" required><span>Je confirme que les renseignements sont exacts et j’accepte qu’ils soient utilisés pour traiter cette inscription.</span></label>
+          <label class="consent"><input id="consent" type="checkbox" aria-describedby="consent-error" required><span>Je confirme que les renseignements sont exacts et j’accepte qu’ils soient utilisés pour traiter cette inscription.</span></label>
+          <span id="consent-error" class="field-error" aria-live="polite"></span>
           <label class="honeypot" aria-hidden="true">Site Web<input id="website" tabindex="-1" autocomplete="off"></label>
           <div class="form-actions">
             <span class="counter">* Champs obligatoires</span>
@@ -147,6 +153,9 @@
       const teamsContainer = document.getElementById('teams');
       const addTeamButton = document.getElementById('add-team');
       const submitButton = document.getElementById('submit');
+      const POSTAL_CODE_PATTERN = /^[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z] \d[ABCEGHJ-NPRSTV-Z]\d$/;
+      const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+      const PHONE_PATTERN = /^[2-9]\d{2}[2-9]\d{6}$/;
       let teamSequence = 0;
 
       init();
@@ -163,6 +172,8 @@
         tournamentSelect.addEventListener('change', handleTournamentChange);
         addTeamButton.addEventListener('click', addTeam);
         form.addEventListener('submit', submitRegistration);
+        form.addEventListener('input', handleFieldInput);
+        form.addEventListener('focusout', handleFieldBlur);
         addTeam();
         renderTournamentInfo();
       }
@@ -172,7 +183,11 @@
       }
 
       function handleTournamentChange() {
-        teamsContainer.querySelectorAll('.division-select').forEach(fillDivisionSelect);
+        clearFieldError(tournamentSelect);
+        teamsContainer.querySelectorAll('.division-select').forEach(function(select) {
+          fillDivisionSelect(select); clearFieldError(select);
+        });
+        clearDuplicateTeamErrors();
         renderTournamentInfo();
       }
 
@@ -204,11 +219,15 @@
         const legend = document.createElement('legend');
         const grid = document.createElement('div'); grid.className = 'team-grid';
         const nameLabel = document.createElement('label'); nameLabel.innerHTML = '<span class="required">Nom de l’équipe</span>';
-        const nameInput = document.createElement('input'); nameInput.className = 'team-name'; nameInput.maxLength = 140; nameInput.required = true;
-        nameLabel.appendChild(nameInput);
+        const nameInput = document.createElement('input'); nameInput.id = 'team-name-' + teamSequence; nameInput.className = 'team-name'; nameInput.maxLength = 140; nameInput.required = true;
+        nameInput.setAttribute('aria-describedby',nameInput.id + '-error');
+        const nameError = document.createElement('span'); nameError.id = nameInput.id + '-error'; nameError.className = 'field-error'; nameError.setAttribute('aria-live','polite');
+        nameLabel.append(nameInput,nameError);
         const divisionLabel = document.createElement('label'); divisionLabel.innerHTML = '<span class="required">Division</span>';
-        const divisionSelect = document.createElement('select'); divisionSelect.className = 'division-select'; divisionSelect.required = true;
-        divisionLabel.appendChild(divisionSelect); grid.append(nameLabel,divisionLabel); fieldset.append(legend,grid);
+        const divisionSelect = document.createElement('select'); divisionSelect.id = 'division-' + teamSequence; divisionSelect.className = 'division-select'; divisionSelect.required = true;
+        divisionSelect.setAttribute('aria-describedby',divisionSelect.id + '-error');
+        const divisionError = document.createElement('span'); divisionError.id = divisionSelect.id + '-error'; divisionError.className = 'field-error'; divisionError.setAttribute('aria-live','polite');
+        divisionLabel.append(divisionSelect,divisionError); grid.append(nameLabel,divisionLabel); fieldset.append(legend,grid);
         teamsContainer.appendChild(fieldset); fillDivisionSelect(divisionSelect); refreshTeamLabels(); nameInput.focus();
       }
 
@@ -219,6 +238,7 @@
       }
 
       function refreshTeamLabels() {
+        clearDuplicateTeamErrors();
         const teams = Array.from(teamsContainer.children);
         teams.forEach(function(fieldset,index) {
           fieldset.querySelector('legend').textContent = 'Équipe ' + (index + 1);
@@ -234,7 +254,12 @@
 
       function submitRegistration(event) {
         event.preventDefault(); setStatus('',false);
-        if (!form.reportValidity()) return;
+        if (!validateForm()) {
+          setStatus('Veuillez corriger les champs indiqués en rouge avant d’envoyer l’inscription.',true);
+          const firstInvalid = form.querySelector('.is-invalid');
+          if (firstInvalid) firstInvalid.focus();
+          return;
+        }
         submitButton.disabled = true; submitButton.textContent = 'Envoi en cours…';
         const payload = {
           token: BOOTSTRAP.token,
@@ -265,6 +290,115 @@
         const status = document.getElementById('status'); status.textContent = message; status.hidden = !message;
         status.className = 'status ' + (isError ? 'error' : 'success');
       }
+
+      function handleFieldInput(event) {
+        const field = event.target;
+        if (!field.matches('input,select')) return;
+        setStatus('',false);
+        if (field.id === 'postal-code') field.value = formatPostalCode(field.value);
+        if (field.id === 'phone') field.value = formatPhone(field.value);
+        clearFieldError(field);
+        if (field.classList.contains('team-name') || field.classList.contains('division-select')) clearDuplicateTeamErrors();
+      }
+
+      function handleFieldBlur(event) {
+        const field = event.target;
+        if (!field.matches('input,select') || field.id === 'website') return;
+        if (field.id === 'email') field.value = field.value.trim().toLowerCase();
+        validateField(field);
+        if (field.classList.contains('team-name') || field.classList.contains('division-select')) validateUniqueTeams();
+      }
+
+      function validateForm() {
+        document.getElementById('postal-code').value = formatPostalCode(value('postal-code'));
+        document.getElementById('phone').value = formatPhone(value('phone'));
+        document.getElementById('email').value = value('email').toLowerCase();
+        let valid = true;
+        form.querySelectorAll('input[required],select[required]').forEach(function(field) {
+          if (!validateField(field)) valid = false;
+        });
+        if (!validateUniqueTeams()) valid = false;
+        return valid;
+      }
+
+      function validateField(field) {
+        const empty = field.type === 'checkbox' ? !field.checked : !field.value.trim();
+        if (field.required && empty) {
+          return setFieldError(field,field.type === 'checkbox' ? 'Vous devez cocher cette case pour continuer.' : 'Ce champ est obligatoire.');
+        }
+        if (field.id === 'postal-code' && !POSTAL_CODE_PATTERN.test(field.value)) {
+          return setFieldError(field,'Entrez un code postal canadien au format A1A 1A1.');
+        }
+        if (field.id === 'phone' && !PHONE_PATTERN.test(phoneDigits(field.value))) {
+          return setFieldError(field,'Entrez un numéro canadien de 10 chiffres, par exemple 514 555-1234.');
+        }
+        if (field.id === 'email' && !EMAIL_PATTERN.test(field.value.trim())) {
+          return setFieldError(field,'Entrez une adresse courriel complète, par exemple nom@ecole.ca.');
+        }
+        clearFieldError(field);
+        return true;
+      }
+
+      function validateUniqueTeams() {
+        clearDuplicateTeamErrors();
+        const seen = {};
+        let valid = true;
+        teamsContainer.querySelectorAll('.team').forEach(function(team) {
+          const nameField = team.querySelector('.team-name');
+          const divisionField = team.querySelector('.division-select');
+          if (!nameField.value.trim() || !divisionField.value) return;
+          const key = divisionField.value + '|' + nameField.value.trim().toLocaleLowerCase('fr-CA');
+          if (seen[key]) {
+            setFieldError(seen[key],'Cette équipe est déjà inscrite dans cette division.');
+            setFieldError(nameField,'Cette équipe est déjà inscrite dans cette division.');
+            valid = false;
+          } else {
+            seen[key] = nameField;
+          }
+        });
+        return valid;
+      }
+
+      function clearDuplicateTeamErrors() {
+        teamsContainer.querySelectorAll('.team-name').forEach(function(field) {
+          const error = document.getElementById(field.getAttribute('aria-describedby'));
+          if (error && error.textContent === 'Cette équipe est déjà inscrite dans cette division.') clearFieldError(field);
+        });
+      }
+
+      function setFieldError(field,message) {
+        const error = document.getElementById(field.getAttribute('aria-describedby'));
+        field.classList.add('is-invalid'); field.setAttribute('aria-invalid','true');
+        if (error) error.textContent = message;
+        return false;
+      }
+
+      function clearFieldError(field) {
+        const error = document.getElementById(field.getAttribute('aria-describedby'));
+        field.classList.remove('is-invalid'); field.removeAttribute('aria-invalid');
+        if (error) error.textContent = '';
+      }
+
+      function formatPostalCode(raw) {
+        const compact = String(raw || '').toUpperCase().replace(/[^A-Z0-9]/g,'');
+        if (compact.length > 6) return compact;
+        return compact.length > 3 ? compact.slice(0,3) + ' ' + compact.slice(3) : compact;
+      }
+
+      function phoneDigits(raw) {
+        let digits = String(raw || '').replace(/\D/g,'');
+        if (digits.length === 11 && digits.charAt(0) === '1') digits = digits.slice(1);
+        return digits;
+      }
+
+      function formatPhone(raw) {
+        const digits = phoneDigits(raw);
+        if (digits.length > 10) return digits;
+        if (digits.length <= 3) return digits;
+        if (digits.length <= 6) return digits.slice(0,3) + ' ' + digits.slice(3);
+        return digits.slice(0,3) + ' ' + digits.slice(3,6) + '-' + digits.slice(6);
+      }
+
       function value(id) { return document.getElementById(id).value.trim(); }
       function formatDate(value) { return new Intl.DateTimeFormat('fr-CA',{ dateStyle:'long' }).format(new Date(value + 'T12:00:00')); }
       function formatDateRange(start,end) { return !end || end === start ? formatDate(start) : formatDate(start) + ' au ' + formatDate(end); }

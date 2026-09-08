@@ -55,6 +55,8 @@ const validPayload = {
 
 const validated = context.validateRegistrationPayload_(validPayload);
 assert.equal(validated.email, 'camille@example.com');
+assert.equal(validated.postalCode, 'H1H 1H1');
+assert.equal(validated.phone, '514 555-0101');
 assert.equal(validated.teams.length, 2);
 assert.equal(validated.tournament.id, 'TRN-TEST');
 
@@ -82,6 +84,17 @@ assert.throws(
   /confirmer/
 );
 
+assert.equal(context.normalizePostalCode_('h1h-1h1'), 'H1H 1H1');
+assert.throws(() => context.normalizePostalCode_('D1A 1A1'), /format A1A 1A1/);
+assert.equal(context.normalizePhone_('(514) 555-0101'), '514 555-0101');
+assert.equal(context.normalizePhone_('+1 514 555 0101'), '514 555-0101');
+assert.throws(() => context.normalizePhone_('555-0101'), /10 chiffres/);
+assert.throws(() => context.normalizePhone_('000 555-0101'), /10 chiffres/);
+assert.throws(
+  () => context.validateRegistrationPayload_({ ...validPayload, email: 'camille@ecole' }),
+  /adresse courriel complète/
+);
+
 assert.equal(context.safeSheetText_('=IMPORTXML("url")'), "'=IMPORTXML(\"url\")");
 assert.equal(context.safeSheetText_('+1 514 555-0101'), "'+1 514 555-0101");
 assert.equal(context.safeSheetText_('École du Parc'), 'École du Parc');
@@ -97,6 +110,20 @@ const browserScript = scripts.at(-1)[1].replace(
   '{"token":"test","tournaments":[],"maxTeams":10}'
 );
 new vm.Script(browserScript, { filename: 'Registration.browser.js' });
+
+const browserElements = {
+  'registration-form': { hidden: false },
+  closed: { hidden: true }
+};
+const browserContext = vm.createContext({
+  console,
+  document: { getElementById: (id) => browserElements[id] }
+});
+vm.runInContext(browserScript, browserContext, { filename: 'Registration.browser.js' });
+assert.equal(vm.runInContext("formatPostalCode('h1h-1h1')", browserContext), 'H1H 1H1');
+assert.equal(vm.runInContext("formatPhone('+1 514 555-0101')", browserContext), '514 555-0101');
+assert.equal(vm.runInContext("formatPhone('51455501019')", browserContext), '51455501019');
+assert.equal(vm.runInContext("EMAIL_PATTERN.test('nom@ecole.ca')", browserContext), true);
 
 const writes = [];
 let idSequence = 0;

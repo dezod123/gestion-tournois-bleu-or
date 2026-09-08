@@ -138,13 +138,13 @@ function validateRegistrationPayload_(payload) {
   const school = cleanText_(payload.school, 140, true, 'École');
   const address = cleanText_(payload.address, 180, true, 'Adresse');
   const city = cleanText_(payload.city, 100, true, 'Ville');
-  const postalCode = cleanText_(payload.postalCode, 16, true, 'Code postal');
-  if (!/^[A-Za-z0-9][A-Za-z0-9 -]{2,14}$/.test(postalCode)) throw new Error('Le code postal semble invalide.');
+  const postalCode = normalizePostalCode_(payload.postalCode);
   const contactName = cleanText_(payload.contactName, 140, true, 'Responsable');
-  const phone = cleanText_(payload.phone, 40, true, 'Téléphone');
-  if ((phone.match(/\d/g) || []).length < 7) throw new Error('Le numéro de téléphone semble invalide.');
+  const phone = normalizePhone_(payload.phone);
   const email = cleanText_(payload.email, 160, true, 'Courriel').toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('L’adresse courriel semble invalide.');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+    throw new Error('Entrez une adresse courriel complète, par exemple nom@ecole.ca.');
+  }
 
   const maxTeams = Math.max(1, Math.min(20, toNumber_(setting_('LIMITE_EQUIPES_PAR_SOUMISSION', 10), 10)));
   if (!Array.isArray(payload.teams) || !payload.teams.length || payload.teams.length > maxTeams) {
@@ -175,6 +175,24 @@ function validateRegistrationPayload_(payload) {
     email: email,
     teams: teams
   };
+}
+
+function normalizePostalCode_(value) {
+  const compact = cleanText_(value, 16, true, 'Code postal').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!/^[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z]\d[ABCEGHJ-NPRSTV-Z]\d$/.test(compact)) {
+    throw new Error('Entrez un code postal canadien au format A1A 1A1.');
+  }
+  return compact.slice(0, 3) + ' ' + compact.slice(3);
+}
+
+function normalizePhone_(value) {
+  const phone = cleanText_(value, 40, true, 'Téléphone');
+  let digits = phone.replace(/\D/g, '');
+  if (digits.length === 11 && digits.charAt(0) === '1') digits = digits.slice(1);
+  if (!/^[2-9]\d{2}[2-9]\d{6}$/.test(digits)) {
+    throw new Error('Entrez un numéro canadien de 10 chiffres, par exemple 514 555-1234.');
+  }
+  return digits.slice(0, 3) + ' ' + digits.slice(3, 6) + '-' + digits.slice(6);
 }
 
 function cleanText_(value, maxLength, required, label) {
