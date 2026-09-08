@@ -52,12 +52,14 @@ function rowsAsObjects_(sheetName) {
   const values = sheet.getDataRange().getValues();
   if (values.length < 2) return [];
   const headers = values[0].map(String);
-  return values.slice(1).filter(function(row) {
+  return values.slice(1).map(function(row, index) {
+    return { values: row, sheetRow: index + 2 };
+  }).filter(function(entry) {
     // An unchecked checkbox can be returned as false even on an otherwise empty row.
-    return row.some(function(value) { return value !== '' && value !== false && value != null; });
-  }).map(function(row, index) {
-    const object = { __row: index + 2 };
-    headers.forEach(function(header, column) { object[header] = row[column]; });
+    return entry.values.some(function(value) { return value !== '' && value !== false && value != null; });
+  }).map(function(entry) {
+    const object = { __row: entry.sheetRow };
+    headers.forEach(function(header, column) { object[header] = entry.values[column]; });
     return object;
   });
 }
