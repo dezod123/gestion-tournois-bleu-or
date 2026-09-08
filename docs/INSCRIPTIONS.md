@@ -20,7 +20,7 @@ Les choix présentés par le formulaire sont lus au chargement. Une division ina
 
 ## Déploiement initial
 
-Avant le déploiement, copier tous les fichiers mis à jour dans le projet Apps Script, ajouter Registration.gs et créer un fichier HTML nommé Registration avec le contenu de Registration.html. Exécuter ensuite initialiserClasseur depuis l'éditeur lié au Google Sheet. Cette étape enregistre de manière privée l'identifiant du classeur administratif nécessaire à l'application Web.
+Avant le déploiement, copier tous les fichiers mis à jour dans le projet Apps Script, ajouter Registration.gs et créer un fichier HTML nommé RegistrationForm avec le contenu de RegistrationForm.html. Exécuter ensuite initialiserClasseur depuis l'éditeur lié au Google Sheet. Cette étape enregistre de manière privée l'identifiant du classeur administratif nécessaire à l'application Web.
 
 Dans Apps Script :
 
@@ -80,4 +80,3 @@ Les seuils se trouvent dans PARAMETRES :
 | LIMITE_EQUIPES_PAR_SOUMISSION | 10 |
 | LIMITE_SOUMISSIONS_10_MIN | 20 |
 | DELAI_MIN_FORMULAIRE_SECONDES | 3 |
-

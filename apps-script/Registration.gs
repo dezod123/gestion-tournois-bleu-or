@@ -1,5 +1,5 @@
 function doGet() {
-  const template = HtmlService.createTemplateFromFile('Registration');
+  const template = HtmlService.createTemplateFromFile('RegistrationForm');
   template.bootstrapJson = safeJsonForHtml_({
     token: createRegistrationToken_(),
     tournaments: registrationOptions_(),

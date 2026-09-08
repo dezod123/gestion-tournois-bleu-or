@@ -17,7 +17,7 @@ Ne placez jamais de mot de passe, jeton Google ou jeton GitHub dans ce dépôt.
 
 1. Créer une feuille Google Sheets vide, par exemple `Tournoi Bleu & Or — DEV`.
 2. Dans la feuille, ouvrir **Extensions → Apps Script**.
-3. Créer un fichier Apps Script pour chacun des fichiers `.gs` du dossier `apps-script/`, y compris `Ids.gs` et `Registration.gs`, puis y copier le contenu correspondant. Créer aussi un fichier HTML nommé `Registration` et y copier `Registration.html`.
+3. Créer un fichier Apps Script pour chacun des fichiers `.gs` du dossier `apps-script/`, y compris `Ids.gs` et `Registration.gs`, puis y copier le contenu correspondant. Créer aussi un fichier HTML nommé `RegistrationForm` et y copier `RegistrationForm.html`.
 4. Ouvrir les paramètres du projet, activer l'affichage du fichier manifeste et remplacer son contenu par `apps-script/appsscript.json`.
 5. Sélectionner la fonction `initialiserClasseur`, puis cliquer sur **Exécuter**.
 6. Autoriser le script avec le compte propriétaire de la feuille.

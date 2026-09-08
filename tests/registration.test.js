@@ -89,7 +89,7 @@ assert.equal(context.safeSheetText_('École du Parc'), 'École du Parc');
 const safeJson = context.safeJsonForHtml_({ value: '</script><script>alert(1)</script>' });
 assert.equal(safeJson.includes('</script>'), false);
 
-const html = fs.readFileSync(path.join(root, 'apps-script/Registration.html'), 'utf8');
+const html = fs.readFileSync(path.join(root, 'apps-script/RegistrationForm.html'), 'utf8');
 const scripts = Array.from(html.matchAll(/<script>([\s\S]*?)<\/script>/g));
 assert.ok(scripts.length);
 const browserScript = scripts.at(-1)[1].replace(
