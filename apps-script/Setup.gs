@@ -3,18 +3,13 @@ function initialiserClasseur() {
   Object.keys(APP.headers).filter(function(sheetName) {
     return sheetName !== APP.sheets.publicData;
   }).forEach(function(sheetName) {
-    let sheet = spreadsheet.getSheetByName(sheetName);
-    if (!sheet) sheet = spreadsheet.insertSheet(sheetName);
-    const headers = APP.headers[sheetName];
-    const firstRow = sheet.getRange(1, 1, 1, headers.length);
-    if (firstRow.getValues()[0].every(function(value) { return value === ''; })) firstRow.setValues([headers]);
-    firstRow.setFontWeight('bold').setBackground('#12355b').setFontColor('#ffffff');
-    sheet.setFrozenRows(1);
-    sheet.autoResizeColumns(1, headers.length);
+    ensureSheetSchema_(spreadsheet, sheetName, APP.headers[sheetName]);
   });
   seedSettings_();
   const publicSpreadsheet = ensurePublicSpreadsheet_();
   applyValidations_();
+  applyFormats_();
+  protectSystemColumns_();
   stylePublicSheet_(publicSpreadsheet);
   onOpen();
   spreadsheet.toast(
@@ -24,9 +19,38 @@ function initialiserClasseur() {
   );
 }
 
+function ensureSheetSchema_(spreadsheet, sheetName, requiredHeaders) {
+  let sheet = spreadsheet.getSheetByName(sheetName);
+  if (!sheet) sheet = spreadsheet.insertSheet(sheetName);
+  const lastColumn = sheet.getLastColumn();
+  const existingHeaders = lastColumn ? sheet.getRange(1, 1, 1, lastColumn).getValues()[0].map(function(value) {
+    return String(value || '').trim();
+  }) : [];
+  const hasHeader = existingHeaders.some(function(value) { return value !== ''; });
+
+  if (!hasHeader) {
+    sheet.getRange(1, 1, 1, requiredHeaders.length).setValues([requiredHeaders]);
+  } else {
+    const missingHeaders = requiredHeaders.filter(function(header) {
+      return existingHeaders.indexOf(header) < 0;
+    });
+    if (missingHeaders.length) {
+      const firstNewColumn = Math.max(existingHeaders.length, 1) + 1;
+      sheet.getRange(1, firstNewColumn, 1, missingHeaders.length).setValues([missingHeaders]);
+    }
+  }
+
+  const width = Math.max(sheet.getLastColumn(), requiredHeaders.length);
+  sheet.getRange(1, 1, 1, width).setFontWeight('bold').setBackground('#12355b').setFontColor('#ffffff');
+  sheet.setFrozenRows(1);
+  sheet.autoResizeColumns(1, width);
+  return sheet;
+}
+
 function seedSettings_() {
   const defaults = [
     ['VERSION_SCHEMA', '1', 'Version du contrat de données publiques'],
+    ['VERSION_STRUCTURE_ADMIN', '2', 'Version de la structure du classeur administratif'],
     ['LANGUE', 'fr-CA', 'Langue principale du site'],
     ['FUSEAU_HORAIRE', 'America/Toronto', 'Fuseau utilisé pour les dates de publication'],
     ['DERNIERE_PUBLICATION', '', 'Mise à jour automatiquement'],
@@ -40,28 +64,99 @@ function seedSettings_() {
   defaults.forEach(function(row) {
     if (current.indexOf(normalize_(row[0])) < 0) sheet.appendRow(row);
   });
+  upsertSetting_('VERSION_STRUCTURE_ADMIN', '2', 'Version de la structure du classeur administratif');
 }
 
 function applyValidations_() {
   const spreadsheet = SpreadsheetApp.getActive();
   const checkboxValidation = SpreadsheetApp.newDataValidation().requireCheckbox().build();
   [
-    [APP.sheets.tournaments, 5], [APP.sheets.divisions, 4], [APP.sheets.divisions, 5],
-    [APP.sheets.venues, 5], [APP.sheets.venues, 6], [APP.sheets.teams, 8],
-    [APP.sheets.matches, 14], [APP.sheets.matches, 16], [APP.sheets.photos, 8]
+    [APP.sheets.tournaments, 'Afficher'], [APP.sheets.divisions, 'Actif'], [APP.sheets.divisions, 'Afficher'],
+    [APP.sheets.venues, 'Actif'], [APP.sheets.venues, 'Afficher'], [APP.sheets.availability, 'Actif'],
+    [APP.sheets.teams, 'Afficher'], [APP.sheets.matches, 'Résultat final'],
+    [APP.sheets.matches, 'Afficher'], [APP.sheets.photos, 'Afficher']
   ].forEach(function(spec) {
     const sheet = spreadsheet.getSheetByName(spec[0]);
-    sheet.getRange(2, spec[1], sheet.getMaxRows() - 1, 1).setDataValidation(checkboxValidation);
+    applyValidationToColumn_(sheet, spec[1], checkboxValidation);
   });
   [
-    [APP.sheets.tournaments, 4, ['ACTIF', 'INACTIF']],
-    [APP.sheets.registrations, 14, ['EN ATTENTE', 'APPROUVÉE', 'REFUSÉE']],
-    [APP.sheets.teams, 7, ['APPROUVÉE', 'INACTIVE']],
-    [APP.sheets.matches, 5, ['POOL', 'DEMI-FINALE', 'FINALE', 'AMICAL']]
+    [APP.sheets.tournaments, 'Statut', ['ACTIF', 'INACTIF']],
+    [APP.sheets.registrations, 'Statut', ['EN ATTENTE', 'APPROUVÉE', 'REFUSÉE']],
+    [APP.sheets.teams, 'Statut', ['APPROUVÉE', 'INACTIVE']],
+    [APP.sheets.matches, 'Phase', ['POOL', 'DEMI-FINALE', 'FINALE', 'AMICAL']]
   ].forEach(function(spec) {
     const validation = SpreadsheetApp.newDataValidation().requireValueInList(spec[2], true).setAllowInvalid(false).build();
     const sheet = spreadsheet.getSheetByName(spec[0]);
-    sheet.getRange(2, spec[1], sheet.getMaxRows() - 1, 1).setDataValidation(validation);
+    applyValidationToColumn_(sheet, spec[1], validation);
+  });
+
+  const positiveNumber = SpreadsheetApp.newDataValidation().requireNumberGreaterThan(0).setAllowInvalid(false).build();
+  applyValidationToColumn_(spreadsheet.getSheetByName(APP.sheets.tournaments), 'Durée match par défaut (minutes)', positiveNumber);
+  applyValidationToColumn_(spreadsheet.getSheetByName(APP.sheets.divisions), 'Durée match (minutes)', positiveNumber);
+
+  applyReferenceValidations_();
+}
+
+function applyValidationToColumn_(sheet, header, validation) {
+  const column = headerColumn_(sheet, header);
+  sheet.getRange(2, column, Math.max(sheet.getMaxRows() - 1, 1), 1).setDataValidation(validation);
+}
+
+function applyReferenceValidations_() {
+  const spreadsheet = SpreadsheetApp.getActive();
+  const references = [
+    [APP.sheets.divisions, 'ID tournoi', APP.sheets.tournaments, 'ID tournoi'],
+    [APP.sheets.venues, 'ID tournoi', APP.sheets.tournaments, 'ID tournoi'],
+    [APP.sheets.availability, 'ID tournoi', APP.sheets.tournaments, 'ID tournoi'],
+    [APP.sheets.availability, 'ID lieu', APP.sheets.venues, 'ID lieu'],
+    [APP.sheets.registrations, 'ID tournoi', APP.sheets.tournaments, 'ID tournoi'],
+    [APP.sheets.registrations, 'ID division', APP.sheets.divisions, 'ID division'],
+    [APP.sheets.teams, 'ID tournoi', APP.sheets.tournaments, 'ID tournoi'],
+    [APP.sheets.teams, 'ID division', APP.sheets.divisions, 'ID division'],
+    [APP.sheets.matches, 'ID tournoi', APP.sheets.tournaments, 'ID tournoi'],
+    [APP.sheets.matches, 'ID division', APP.sheets.divisions, 'ID division'],
+    [APP.sheets.matches, 'ID lieu', APP.sheets.venues, 'ID lieu'],
+    [APP.sheets.matches, 'Équipe domicile', APP.sheets.teams, 'ID équipe'],
+    [APP.sheets.matches, 'Équipe visiteuse', APP.sheets.teams, 'ID équipe'],
+    [APP.sheets.photos, 'ID tournoi', APP.sheets.tournaments, 'ID tournoi'],
+    [APP.sheets.photos, 'ID division', APP.sheets.divisions, 'ID division'],
+    [APP.sheets.photos, 'ID équipe', APP.sheets.teams, 'ID équipe']
+  ];
+
+  references.forEach(function(spec) {
+    const targetSheet = spreadsheet.getSheetByName(spec[0]);
+    const sourceSheet = spreadsheet.getSheetByName(spec[2]);
+    const sourceColumn = headerColumn_(sourceSheet, spec[3]);
+    const sourceRange = sourceSheet.getRange(2, sourceColumn, Math.max(sourceSheet.getMaxRows() - 1, 1), 1);
+    const validation = SpreadsheetApp.newDataValidation()
+      .requireValueInRange(sourceRange, true)
+      .setAllowInvalid(false)
+      .build();
+    applyValidationToColumn_(targetSheet, spec[1], validation);
+  });
+}
+
+function applyFormats_() {
+  const spreadsheet = SpreadsheetApp.getActive();
+  [
+    [APP.sheets.tournaments, 'Date début'],
+    [APP.sheets.tournaments, 'Date fin'],
+    [APP.sheets.availability, 'Date'],
+    [APP.sheets.matches, 'Date'],
+    [APP.sheets.photos, 'Date']
+  ].forEach(function(spec) {
+    const sheet = spreadsheet.getSheetByName(spec[0]);
+    sheet.getRange(2, headerColumn_(sheet, spec[1]), Math.max(sheet.getMaxRows() - 1, 1), 1).setNumberFormat('yyyy-mm-dd');
+  });
+  [
+    [APP.sheets.availability, 'Heure début'],
+    [APP.sheets.availability, 'Heure fin'],
+    [APP.sheets.availability, 'Pause début'],
+    [APP.sheets.availability, 'Pause fin'],
+    [APP.sheets.matches, 'Heure']
+  ].forEach(function(spec) {
+    const sheet = spreadsheet.getSheetByName(spec[0]);
+    sheet.getRange(2, headerColumn_(sheet, spec[1]), Math.max(sheet.getMaxRows() - 1, 1), 1).setNumberFormat('hh:mm');
   });
 }
 
@@ -96,7 +191,10 @@ function stylePublicSheet_(publicSpreadsheet) {
 
 function chargerDonneesDemonstration() {
   const ui = SpreadsheetApp.getUi();
-  const sheetNames = [APP.sheets.tournaments, APP.sheets.divisions, APP.sheets.venues, APP.sheets.teams, APP.sheets.matches];
+  const sheetNames = [
+    APP.sheets.tournaments, APP.sheets.divisions, APP.sheets.venues,
+    APP.sheets.availability, APP.sheets.teams, APP.sheets.matches
+  ];
   const containsData = sheetNames.some(function(name) { return rowsAsObjects_(name).length > 0; });
   if (containsData) {
     ui.alert('Données non ajoutées',
@@ -107,27 +205,51 @@ function chargerDonneesDemonstration() {
     'Un petit tournoi fictif sera ajouté afin de tester la publication.', ui.ButtonSet.YES_NO);
   if (answer !== ui.Button.YES) return;
 
-  const spreadsheet = SpreadsheetApp.getActive();
-  spreadsheet.getSheetByName(APP.sheets.tournaments).getRange(2, 1, 1, APP.headers.TOURNOIS.length).setValues([[
-    'T-DEMO', 'Tournoi Bleu & Or', 'Démonstration', 'ACTIF', true,
-    new Date(2026, 10, 6), new Date(2026, 10, 8), 'École secondaire', 'Données fictives pour valider le fonctionnement.'
-  ]]);
-  spreadsheet.getSheetByName(APP.sheets.divisions).getRange(2, 1, 1, APP.headers.DIVISIONS.length).setValues([[
-    'D-DEMO', 'T-DEMO', 'Benjamin masculin', true, true, 1, 1, 2, 3, 1, 0, 'POINTS,DIFF,BP,NOM'
-  ]]);
-  spreadsheet.getSheetByName(APP.sheets.venues).getRange(2, 1, 1, APP.headers.LIEUX.length).setValues([[
-    'GYM-1', 'T-DEMO', 'Gymnase 1', '', true, true
-  ]]);
-  spreadsheet.getSheetByName(APP.sheets.teams).getRange(2, 1, 3, APP.headers.EQUIPES.length).setValues([
-    ['E01', 'T-DEMO', 'D-DEMO', 'A', 'Les Aigles', 'École du Parc', 'APPROUVÉE', true],
-    ['E02', 'T-DEMO', 'D-DEMO', 'A', 'Les Lynx', 'École des Sommets', 'APPROUVÉE', true],
-    ['E03', 'T-DEMO', 'D-DEMO', 'A', 'Le Phénix', 'École Centrale', 'APPROUVÉE', true]
-  ]);
-  spreadsheet.getSheetByName(APP.sheets.matches).getRange(2, 1, 3, APP.headers.MATCHS.length).setValues([
-    ['M01', 'T-DEMO', 'D-DEMO', 'A', 'POOL', '1', new Date(2026, 10, 6), new Date(1899, 11, 30, 17, 0), 'GYM-1', 'E01', 'E02', 3, 1, true, '', true],
-    ['M02', 'T-DEMO', 'D-DEMO', 'A', 'POOL', '2', new Date(2026, 10, 7), new Date(1899, 11, 30, 9, 0), 'GYM-1', 'E02', 'E03', '', '', false, '', true],
-    ['M03', 'T-DEMO', 'D-DEMO', 'A', 'POOL', '3', new Date(2026, 10, 7), new Date(1899, 11, 30, 11, 0), 'GYM-1', 'E03', 'E01', '', '', false, '', true]
-  ]);
+  writeObjectRow_(APP.sheets.tournaments, {
+    'ID tournoi': 'T-DEMO', 'Nom': 'Tournoi Bleu & Or', 'Édition': 'Démonstration',
+    'Statut': 'ACTIF', 'Afficher': true, 'Date début': new Date(2026, 10, 6),
+    'Date fin': new Date(2026, 10, 8), 'Lieu principal': 'École secondaire',
+    'Description publique': 'Données fictives pour valider le fonctionnement.',
+    'Durée match par défaut (minutes)': 30
+  }, 2);
+  writeObjectRow_(APP.sheets.divisions, {
+    'ID division': 'D-DEMO', 'ID tournoi': 'T-DEMO', 'Nom': 'Benjamin masculin',
+    'Actif': true, 'Afficher': true, 'Nombre de pools': 1, 'Matchs entre équipes': 1,
+    'Équipes qualifiées': 2, 'Points victoire': 3, 'Points nul': 1,
+    'Points défaite': 0, 'Ordre bris égalité': 'POINTS,DIFF,BP,NOM'
+  }, 2);
+  writeObjectRow_(APP.sheets.venues, {
+    'ID lieu': 'GYM-1', 'ID tournoi': 'T-DEMO', 'Nom': 'Gymnase 1',
+    'Adresse publique': '', 'Actif': true, 'Afficher': true
+  }, 2);
+  writeObjectRow_(APP.sheets.availability, {
+    'ID plage': 'PLG-DEMO', 'ID tournoi': 'T-DEMO', 'ID lieu': 'GYM-1',
+    'Date': new Date(2026, 10, 6), 'Heure début': new Date(1899, 11, 30, 16, 30),
+    'Heure fin': new Date(1899, 11, 30, 21, 30), 'Actif': true,
+    'Notes': 'Plage fictive pour le futur générateur d’horaire.'
+  }, 2);
+  [
+    ['E01', 'Les Aigles', 'École du Parc'],
+    ['E02', 'Les Lynx', 'École des Sommets'],
+    ['E03', 'Le Phénix', 'École Centrale']
+  ].forEach(function(team, index) {
+    writeObjectRow_(APP.sheets.teams, {
+      'ID équipe': team[0], 'ID tournoi': 'T-DEMO', 'ID division': 'D-DEMO',
+      'Pool': 'A', 'Nom': team[1], 'École': team[2], 'Statut': 'APPROUVÉE', 'Afficher': true
+    }, index + 2);
+  });
+  [
+    ['M01', '1', new Date(2026, 10, 6), new Date(1899, 11, 30, 17, 0), 'E01', 'E02', 3, 1, true],
+    ['M02', '2', new Date(2026, 10, 7), new Date(1899, 11, 30, 9, 0), 'E02', 'E03', '', '', false],
+    ['M03', '3', new Date(2026, 10, 7), new Date(1899, 11, 30, 11, 0), 'E03', 'E01', '', '', false]
+  ].forEach(function(match, index) {
+    writeObjectRow_(APP.sheets.matches, {
+      'ID match': match[0], 'ID tournoi': 'T-DEMO', 'ID division': 'D-DEMO',
+      'Pool': 'A', 'Phase': 'POOL', 'Ronde': match[1], 'Date': match[2], 'Heure': match[3],
+      'ID lieu': 'GYM-1', 'Équipe domicile': match[4], 'Équipe visiteuse': match[5],
+      'Score domicile': match[6], 'Score visiteuse': match[7], 'Résultat final': match[8], 'Afficher': true
+    }, index + 2);
+  });
   ui.alert('Démonstration ajoutée', 'Vous pouvez maintenant choisir Tournoi → Publier les changements.', ui.ButtonSet.OK);
 }
 
@@ -137,6 +259,7 @@ function reparerPositionDonneesDemonstration() {
     [APP.sheets.tournaments, 'T-DEMO', 2],
     [APP.sheets.divisions, 'D-DEMO', 2],
     [APP.sheets.venues, 'GYM-1', 2],
+    [APP.sheets.availability, 'PLG-DEMO', 2],
     [APP.sheets.teams, 'E01', 2],
     [APP.sheets.teams, 'E02', 3],
     [APP.sheets.teams, 'E03', 4],

@@ -17,7 +17,7 @@ Ne placez jamais de mot de passe, jeton Google ou jeton GitHub dans ce dépôt.
 
 1. Créer une feuille Google Sheets vide, par exemple `Tournoi Bleu & Or — DEV`.
 2. Dans la feuille, ouvrir **Extensions → Apps Script**.
-3. Créer un fichier Apps Script pour chacun des fichiers `.gs` du dossier `apps-script/`, puis y copier le contenu correspondant.
+3. Créer un fichier Apps Script pour chacun des fichiers `.gs` du dossier `apps-script/`, y compris `Ids.gs`, puis y copier le contenu correspondant.
 4. Ouvrir les paramètres du projet, activer l'affichage du fichier manifeste et remplacer son contenu par `apps-script/appsscript.json`.
 5. Sélectionner la fonction `initialiserClasseur`, puis cliquer sur **Exécuter**.
 6. Autoriser le script avec le compte propriétaire de la feuille.
@@ -26,7 +26,15 @@ Ne placez jamais de mot de passe, jeton Google ou jeton GitHub dans ce dépôt.
 
 Pour un premier essai sans saisie manuelle, choisir **Tournoi → Charger les données de démonstration**, puis **Tournoi → Publier les changements**. Le chargement de démonstration refuse de s'exécuter dès que les onglets concernés contiennent déjà des données.
 
-L'initialisation crée uniquement les onglets manquants et leurs en-têtes. Elle ne supprime pas les données existantes.
+L'initialisation crée les onglets manquants et ajoute à droite les nouvelles colonnes requises. Elle peut donc être relancée après une mise à jour sans supprimer ni déplacer les données existantes.
+
+## Création et identifiants
+
+- **Tournoi → Créer une nouvelle édition** demande le nom et l'édition, puis crée la ligne `TOURNOIS` avec un identifiant permanent et le statut `INACTIF`.
+- Après avoir ajouté manuellement des divisions, lieux, plages horaires, équipes, matchs ou photos, choisir **Tournoi → Générer les identifiants manquants**. Les cellules techniques grisées sont remplies automatiquement.
+- Ne jamais recopier ni modifier un identifiant existant. Les listes déroulantes des colonnes de référence permettent de sélectionner le bon tournoi, la bonne division, le bon lieu ou la bonne équipe.
+
+Voir [`IDENTIFIANTS_ET_HORAIRES.md`](IDENTIFIANTS_ET_HORAIRES.md) pour la configuration détaillée.
 
 ## Première publication
 

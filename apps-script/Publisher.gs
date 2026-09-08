@@ -71,12 +71,14 @@ function buildPublicSnapshot_() {
     rows.push(publicRow_('tournoi', row['ID tournoi'], index, { id: String(row['ID tournoi']), name: String(row['Nom']),
       edition: String(row['Édition'] || ''), startDate: toIsoDate_(row['Date début'], timeZone),
       endDate: toIsoDate_(row['Date fin'], timeZone), mainVenue: String(row['Lieu principal'] || ''),
-      description: String(row['Description publique'] || '') }));
+      description: String(row['Description publique'] || ''),
+      defaultMatchDurationMinutes: toNumber_(row['Durée match par défaut (minutes)'], null) }));
   });
   divisions.forEach(function(row, index) {
     rows.push(publicRow_('division', row['ID division'], index, { id: String(row['ID division']),
       tournamentId: String(row['ID tournoi']), name: String(row['Nom']), poolCount: toNumber_(row['Nombre de pools'], 1),
-      qualifiers: toNumber_(row['Équipes qualifiées'], 0) }));
+      qualifiers: toNumber_(row['Équipes qualifiées'], 0),
+      matchDurationMinutes: toNumber_(row['Durée match (minutes)'], null) }));
   });
   venues.forEach(function(row, index) {
     rows.push(publicRow_('lieu', row['ID lieu'], index, { id: String(row['ID lieu']), tournamentId: String(row['ID tournoi']),

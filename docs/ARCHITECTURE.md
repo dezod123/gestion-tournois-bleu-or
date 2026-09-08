@@ -18,6 +18,7 @@
 | `TOURNOIS` | Éditions pouvant être actives ou archivées | Champs sélectionnés |
 | `DIVISIONS` | Règles propres à chaque catégorie/division | Champs sélectionnés |
 | `LIEUX` | Gymnases et terrains | Champs sélectionnés |
+| `PLAGES_HORAIRES` | Fenêtres où un lieu peut accueillir des matchs | Non |
 | `INSCRIPTIONS` | Demandes, coordonnées et approbation | Non |
 | `EQUIPES` | Équipes approuvées et affectation aux pools | Champs sélectionnés |
 | `MATCHS` | Horaire, scores finaux et motifs facultatifs | Champs sélectionnés |
@@ -48,3 +49,9 @@ Les types V1 sont `meta`, `tournoi`, `division`, `lieu`, `equipe`, `match`, `cla
 6. la consignation de la date et du compte ayant publié.
 
 Si une erreur bloquante existe, l'instantané précédent demeure intact.
+
+## Identifiants et planification
+
+Les identifiants techniques sont produits par Apps Script et ne doivent pas être saisis ni modifiés par les administrateurs. La commande **Tournoi → Générer les identifiants manquants** complète les lignes déjà saisies sans remplacer un identifiant existant. Les futures inscriptions, approbations et générations d'horaire appelleront le même générateur directement.
+
+La durée par défaut est configurée dans `TOURNOIS`. Une valeur facultative dans `DIVISIONS` permet de la remplacer pour une catégorie précise. `PLAGES_HORAIRES` décrit les heures réellement disponibles par date et par lieu, y compris une pause facultative. Ces données demeurent privées et serviront d'entrée au générateur d'horaire; l'horaire produit restera modifiable dans `MATCHS` avant sa publication.

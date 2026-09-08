@@ -33,4 +33,6 @@ La saisie et les corrections dans Google Sheets ne déclenchent aucun script. Un
 5. Configurer le tournoi, puis utiliser **Tournoi → Publier les changements**.
 6. Publier le classeur public créé automatiquement et reporter son URL CSV dans `site/config.js`.
 
+Le menu Google Sheets permet aussi de créer une édition et de générer automatiquement tous les identifiants techniques. La durée des matchs et les disponibilités des lieux sont configurables; voir [`docs/IDENTIFIANTS_ET_HORAIRES.md`](docs/IDENTIFIANTS_ET_HORAIRES.md).
+
 Pendant le développement, le site fonctionne avec les données d'exemple incluses et peut être lancé avec n'importe quel serveur HTTP statique.

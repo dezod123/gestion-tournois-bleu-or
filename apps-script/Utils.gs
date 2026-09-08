@@ -3,6 +3,9 @@ function onOpen() {
     .createMenu('Tournoi')
     .addItem('Publier les changements', 'publierChangements')
     .addSeparator()
+    .addItem('Créer une nouvelle édition', 'creerNouvelleEdition')
+    .addItem('Générer les identifiants manquants', 'genererIdentifiantsManquants')
+    .addSeparator()
     .addItem('Charger les données de démonstration', 'chargerDonneesDemonstration')
     .addItem('Initialiser / réparer le classeur', 'initialiserClasseur')
     .addToUi();
@@ -62,6 +65,48 @@ function rowsAsObjects_(sheetName) {
     headers.forEach(function(header, column) { object[header] = entry.values[column]; });
     return object;
   });
+}
+
+function sheetHeaders_(sheet) {
+  const width = Math.max(sheet.getLastColumn(), 1);
+  return sheet.getRange(1, 1, 1, width).getValues()[0].map(function(value) {
+    return String(value || '').trim();
+  });
+}
+
+function headerColumn_(sheet, header) {
+  const column = sheetHeaders_(sheet).indexOf(header) + 1;
+  if (!column) throw new Error('Colonne manquante dans ' + sheet.getName() + ' : ' + header);
+  return column;
+}
+
+function isEmptyBusinessValue_(value) {
+  return value === '' || value === false || value == null;
+}
+
+function firstAvailableDataRow_(sheet) {
+  const headers = sheetHeaders_(sheet);
+  const width = headers.length;
+  const lastRow = Math.max(sheet.getLastRow(), 2);
+  const values = sheet.getRange(2, 1, lastRow - 1, width).getValues();
+  for (let index = 0; index < values.length; index += 1) {
+    if (values[index].every(isEmptyBusinessValue_)) return index + 2;
+  }
+  if (lastRow >= sheet.getMaxRows()) sheet.insertRowsAfter(sheet.getMaxRows(), 1);
+  return lastRow + 1;
+}
+
+function writeObjectRow_(sheetName, valuesByHeader, rowNumber) {
+  const sheet = SpreadsheetApp.getActive().getSheetByName(sheetName);
+  if (!sheet) throw new Error('Onglet manquant : ' + sheetName);
+  const headers = sheetHeaders_(sheet);
+  const row = rowNumber || firstAvailableDataRow_(sheet);
+  Object.keys(valuesByHeader).forEach(function(header) {
+    const column = headers.indexOf(header) + 1;
+    if (!column) throw new Error('Colonne manquante dans ' + sheetName + ' : ' + header);
+    sheet.getRange(row, column).setValue(valuesByHeader[header]);
+  });
+  return row;
 }
 
 function setting_(key, fallback) {
