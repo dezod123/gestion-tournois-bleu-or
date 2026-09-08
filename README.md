@@ -19,7 +19,7 @@ La saisie et les corrections dans Google Sheets ne déclenchent aucun script. Un
 
 ## Contenu du dépôt
 
-- `apps-script/` : création du classeur, validations, calcul des classements et publication manuelle;
+- `apps-script/` : création du classeur, inscriptions, génération d’horaire, calcul des classements et publication manuelle;
 - `site/` : interface publique responsive, en français;
 - `docs/` : instructions d'installation et d'exploitation;
 - les fichiers DOCX/XLSX historiques restent localement comme références et sont exclus du dépôt public.
@@ -33,7 +33,7 @@ La saisie et les corrections dans Google Sheets ne déclenchent aucun script. Un
 5. Configurer le tournoi, puis utiliser **Tournoi → Publier les changements**.
 6. Publier le classeur public créé automatiquement et reporter son URL CSV dans `site/config.js`.
 
-Le menu Google Sheets permet aussi de créer une édition et de générer automatiquement tous les identifiants techniques. La durée des matchs et les disponibilités des lieux sont configurables; voir [`docs/IDENTIFIANTS_ET_HORAIRES.md`](docs/IDENTIFIANTS_ET_HORAIRES.md).
+Le menu Google Sheets permet aussi de créer une édition et de générer automatiquement tous les identifiants techniques. La durée des matchs et les disponibilités des lieux sont configurables; voir [`docs/IDENTIFIANTS_ET_HORAIRES.md`](docs/IDENTIFIANTS_ET_HORAIRES.md). Le générateur de matchs de poules est expliqué dans [`docs/HORAIRE.md`](docs/HORAIRE.md).
 
 Un Google Form distinct peut être généré automatiquement pour chaque tournoi. Une soumission correspond à une équipe; les réponses privées sont importées en lot avant leur approbation. Le flux complet est décrit dans [`docs/INSCRIPTIONS.md`](docs/INSCRIPTIONS.md).
 

@@ -1,0 +1,84 @@
+# Génération de l’horaire
+
+## Portée de cette version
+
+Le générateur construit les matchs de poules d’un tournoi à partir des équipes approuvées et des plages disponibles. Il ne génère pas encore les demi-finales, finales ou matchs de consolation, puisque ces rencontres dépendent généralement des résultats du classement.
+
+Le générateur ne modifie et ne supprime jamais un match existant. Les matchs déjà présents dans `MATCHS`, y compris ceux dont le résultat est final, comptent dans le nombre de confrontations demandé afin d’éviter les doublons.
+
+## Configuration requise
+
+### Dans `TOURNOIS`
+
+- `Durée match par défaut (minutes)` : durée utilisée lorsqu’une division ne possède pas sa propre durée.
+
+### Dans `DIVISIONS`
+
+- `Actif` : la division doit être cochée;
+- `Nombre de pools` : de 1 à 26;
+- `Matchs entre équipes` : nombre de fois où chaque paire d’équipes d’un même pool doit se rencontrer;
+- `Durée match (minutes)` : valeur facultative qui remplace la durée du tournoi.
+
+### Dans `EQUIPES`
+
+Seules les équipes dont le statut est `APPROUVÉE` participent. Un pool déjà inscrit est conservé. Les pools doivent être nommés `A`, `B`, `C`, etc. Lorsqu’une équipe n’a pas encore de pool, le générateur l’affecte au pool qui contient le moins d’équipes, sans déplacer les équipes déjà affectées.
+
+### Dans `LIEUX` et `PLAGES_HORAIRES`
+
+Chaque plage active doit référencer un lieu actif du même tournoi et contenir :
+
+- une date;
+- une heure de début;
+- une heure de fin;
+- facultativement, un début et une fin de pause.
+
+Créer une ligne par date et par lieu. Deux lieux peuvent être disponibles au même moment : le générateur y placera des matchs en parallèle lorsque les équipes concernées sont différentes.
+
+## Procédure
+
+1. Vérifier les divisions, équipes, lieux et plages horaires.
+2. Utiliser **Tournoi → Générer les identifiants manquants** si des lignes administratives n’ont pas encore d’identifiant.
+3. Dans `TOURNOIS`, sélectionner une cellule de la ligne du tournoi.
+4. Choisir **Tournoi → Générer l’horaire du tournoi sélectionné**.
+5. Lire le résumé : affectations de pools, nouveaux matchs, matchs existants conservés et avertissements.
+6. Confirmer la génération.
+7. Vérifier et, au besoin, déplacer manuellement les lignes produites dans `MATCHS`.
+8. Choisir **Tournoi → Publier les changements** seulement lorsque l’horaire est prêt à être affiché.
+
+La commande peut être relancée après l’approbation de nouvelles équipes. Elle calcule alors uniquement les confrontations manquantes.
+
+## Règles de placement
+
+Le moteur :
+
+- génère un tournoi toutes rondes dans chaque pool;
+- alterne autant que possible domicile et visiteur lors des confrontations répétées;
+- respecte la durée de chaque division;
+- ne place rien pendant une pause;
+- ne place jamais deux matchs au même lieu au même moment;
+- ne place jamais une équipe dans deux matchs au même moment;
+- considère les matchs existants comme des périodes déjà occupées;
+- conserve les scores, résultats et horaires déjà saisis.
+
+Les équipes peuvent jouer deux matchs consécutifs dans cette première version. Aucun temps de repos minimal n’est imposé, car cette valeur ne fait pas encore partie de la configuration.
+
+## Messages à corriger
+
+- **Capacité horaire insuffisante** : ajouter une plage, prolonger une plage ou activer un autre lieu.
+- **Lieu inactif ou inconnu** : corriger `ID lieu` dans `PLAGES_HORAIRES` ou activer le lieu.
+- **Conflit entre des matchs existants** : corriger les heures ou les lieux des matchs indiqués avant de relancer.
+- **Pool hors configuration** : corriger le pool de l’équipe ou augmenter `Nombre de pools`.
+- **Division inactive** : activer la division ou corriger l’équipe qui y est rattachée.
+
+## Limites intentionnelles
+
+Cette première version ne gère pas :
+
+- la disponibilité individuelle des équipes;
+- un temps de repos minimal entre deux matchs;
+- les préférences d’heures;
+- les déplacements entre lieux;
+- les phases éliminatoires dépendantes du classement;
+- l’optimisation avancée d’un horaire déjà construit.
+
+Après génération, `MATCHS` demeure la source officielle et reste entièrement modifiable par les administrateurs avant publication.

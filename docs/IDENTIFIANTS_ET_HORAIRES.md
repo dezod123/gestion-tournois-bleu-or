@@ -49,4 +49,6 @@ Actif : coché
 
 Créer une ligne distincte par combinaison de date et de lieu. Les pauses sont facultatives. Plusieurs lieux peuvent être disponibles en parallèle.
 
-Le futur générateur combinera les équipes, le nombre de confrontations configuré dans `DIVISIONS`, les durées et les plages actives. Il créera les lignes `MATCHS` avec leurs identifiants, dates, heures et lieux. Les administrateurs pourront ensuite déplacer ou corriger ces matchs dans la feuille avant de choisir **Publier les changements**.
+Le générateur combine les équipes approuvées, le nombre de confrontations configuré dans `DIVISIONS`, les durées et les plages actives. Il crée les lignes `MATCHS` avec leurs identifiants, dates, heures et lieux. Les administrateurs peuvent ensuite déplacer ou corriger ces matchs dans la feuille avant de choisir **Publier les changements**.
+
+La procédure complète et les limites de cette première version sont décrites dans [`HORAIRE.md`](HORAIRE.md).

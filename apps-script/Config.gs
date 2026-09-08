@@ -1,5 +1,5 @@
 const APP = Object.freeze({
-  version: '0.4.0',
+  version: '0.5.0',
   locale: 'fr-CA',
   sheets: Object.freeze({
     settings: 'PARAMETRES',

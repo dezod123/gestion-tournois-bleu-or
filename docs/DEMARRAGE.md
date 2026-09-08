@@ -38,6 +38,17 @@ Voir [`IDENTIFIANTS_ET_HORAIRES.md`](IDENTIFIANTS_ET_HORAIRES.md) pour la config
 
 La création des Google Forms et leur traitement administratif sont décrits dans [`INSCRIPTIONS.md`](INSCRIPTIONS.md).
 
+## Générer un premier horaire
+
+1. Configurer le nombre de pools, les confrontations et la durée dans `DIVISIONS`.
+2. Vérifier que les équipes approuvées possèdent la bonne division; les pools vides seront équilibrés automatiquement.
+3. Ajouter les lieux actifs et leurs disponibilités dans `PLAGES_HORAIRES`.
+4. Sélectionner la ligne du tournoi dans `TOURNOIS`.
+5. Choisir **Tournoi → Générer l’horaire du tournoi sélectionné** et vérifier le résumé avant de confirmer.
+6. Réviser les lignes ajoutées dans `MATCHS`, puis publier manuellement.
+
+Voir [`HORAIRE.md`](HORAIRE.md) pour les règles de placement et les limites actuelles.
+
 ## Première publication
 
 1. Remplir au minimum `TOURNOIS`, `DIVISIONS`, `EQUIPES` et `MATCHS`.

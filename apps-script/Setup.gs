@@ -255,7 +255,7 @@ function chargerDonneesDemonstration() {
     'ID plage': 'PLG-DEMO', 'ID tournoi': 'T-DEMO', 'ID lieu': 'GYM-1',
     'Date': new Date(2026, 10, 6), 'Heure début': new Date(1899, 11, 30, 16, 30),
     'Heure fin': new Date(1899, 11, 30, 21, 30), 'Actif': true,
-    'Notes': 'Plage fictive pour le futur générateur d’horaire.'
+    'Notes': 'Plage fictive pour tester le générateur d’horaire.'
   }, 2);
   [
     ['E01', 'Les Aigles', 'École du Parc'],
