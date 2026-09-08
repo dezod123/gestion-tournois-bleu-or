@@ -113,11 +113,21 @@ function syncRegistrationForm_(tournament) {
 
   configureRegistrationForm_(form, tournament, config.divisions);
   const spreadsheetId = adminSpreadsheet_().getId();
-  if (form.getDestinationType() !== FormApp.DestinationType.SPREADSHEET || form.getDestinationId() !== spreadsheetId) {
+  if (!formUsesSpreadsheetDestination_(form, spreadsheetId)) {
     form.setDestination(FormApp.DestinationType.SPREADSHEET, spreadsheetId);
   }
   writeRegistrationFormMetadata_(tournament.__row, form);
   return { form: form, created: created };
+}
+
+function formUsesSpreadsheetDestination_(form, spreadsheetId) {
+  try {
+    return form.getDestinationType() === FormApp.DestinationType.SPREADSHEET &&
+      form.getDestinationId() === spreadsheetId;
+  } catch (error) {
+    // Un nouveau formulaire sans destination fait lever une exception dans Google Forms.
+    return false;
+  }
 }
 
 function registrationFormConfig_(tournament) {

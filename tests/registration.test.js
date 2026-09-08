@@ -139,8 +139,16 @@ function validationBuilder() {
 }
 context.FormApp = {
   ItemType: { TEXT: 'TEXT', LIST: 'LIST', CHECKBOX: 'CHECKBOX' },
+  DestinationType: { SPREADSHEET: 'SPREADSHEET' },
   createTextValidation: validationBuilder
 };
+assert.equal(context.formUsesSpreadsheetDestination_({
+  getDestinationType() { throw new Error('The form currently has no response destination.'); }
+}, 'sheet-1'), false);
+assert.equal(context.formUsesSpreadsheetDestination_({
+  getDestinationType() { return 'SPREADSHEET'; },
+  getDestinationId() { return 'sheet-1'; }
+}, 'sheet-1'), true);
 const form = new FakeForm();
 context.configureRegistrationForm_(form, tournament, divisions.map((division) => ({ id: division['ID division'], name: division.Nom })));
 assert.equal(form.items.length, 10);
