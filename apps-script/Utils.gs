@@ -6,6 +6,7 @@ function onOpen() {
     .addItem('Créer une nouvelle édition', 'creerNouvelleEdition')
     .addItem('Générer les identifiants manquants', 'genererIdentifiantsManquants')
     .addItem('Générer l’horaire du tournoi sélectionné', 'genererHoraireTournoiSelectionne')
+    .addItem('Actualiser les noms d’équipes dans MATCHS', 'actualiserNomsEquipesMatchs')
     .addSeparator()
     .addItem('Créer / mettre à jour le formulaire sélectionné', 'creerOuMettreAJourFormulaireInscription')
     .addItem('Synchroniser tous les formulaires', 'synchroniserTousFormulairesInscription')

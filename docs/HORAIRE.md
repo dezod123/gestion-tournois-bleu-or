@@ -47,6 +47,8 @@ Créer une ligne par date et par lieu. Deux lieux peuvent être disponibles au m
 
 La commande peut être relancée après l’approbation de nouvelles équipes. Elle calcule alors uniquement les confrontations manquantes.
 
+`MATCHS` conserve les identifiants comme références officielles et affiche automatiquement `Nom équipe domicile` et `Nom équipe visiteuse` juste à côté. Si un administrateur change manuellement un ID ou renomme une équipe, il peut choisir **Tournoi → Actualiser les noms d’équipes dans MATCHS**. La publication effectue aussi cette actualisation automatiquement.
+
 ## Règles de placement
 
 Le moteur :

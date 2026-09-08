@@ -11,6 +11,7 @@ function publierChangements() {
     return;
   }
   try {
+    refreshMatchTeamNames_(adminSpreadsheet_());
     const snapshot = buildPublicSnapshot_();
     if (snapshot.errors.length) {
       appendPublicationLog_('ERREUR', snapshot.errors.join(' | '), 0);

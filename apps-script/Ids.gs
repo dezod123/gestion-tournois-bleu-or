@@ -134,7 +134,9 @@ function protectSystemColumns_() {
     { sheet: APP.sheets.tournaments, header: 'ID formulaire inscription' },
     { sheet: APP.sheets.tournaments, header: 'URL formulaire inscription' },
     { sheet: APP.sheets.tournaments, header: 'URL modification formulaire' },
-    { sheet: APP.sheets.tournaments, header: 'Dernière mise à jour formulaire' }
+    { sheet: APP.sheets.tournaments, header: 'Dernière mise à jour formulaire' },
+    { sheet: APP.sheets.matches, header: 'Nom équipe domicile' },
+    { sheet: APP.sheets.matches, header: 'Nom équipe visiteuse' }
   ]);
 
   protectedColumns.forEach(function(spec) {
@@ -148,6 +150,6 @@ function protectSystemColumns_() {
     const range = sheet.getRange(2, column, Math.max(sheet.getMaxRows() - 1, 1), 1);
     range.setBackground('#eef1f4');
     range.protect().setDescription(description).setWarningOnly(true);
-    sheet.getRange(1, column).setNote('Colonne gérée automatiquement par le système. Ne pas modifier un identifiant existant.');
+    sheet.getRange(1, column).setNote('Colonne gérée automatiquement par le système. Ne pas modifier son contenu manuellement.');
   });
 }

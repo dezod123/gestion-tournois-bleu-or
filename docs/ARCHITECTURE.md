@@ -21,7 +21,7 @@
 | `PLAGES_HORAIRES` | Fenêtres où un lieu peut accueillir des matchs | Non |
 | `INSCRIPTIONS` | Demandes, coordonnées et approbation | Non |
 | `EQUIPES` | Équipes approuvées et affectation aux pools | Champs sélectionnés |
-| `MATCHS` | Horaire, scores finaux et motifs facultatifs | Champs sélectionnés |
+| `MATCHS` | Horaire, scores finaux, motifs et noms administratifs dérivés des IDs | Champs sélectionnés |
 | `PHOTOS` | Références approuvées vers Google Drive | Champs sélectionnés |
 | `JOURNAL_PUBLICATION` | Historique des publications | Non |
 
