@@ -173,7 +173,7 @@ function configureRegistrationForm_(form, tournament, divisions) {
   upsertRegistrationTextItem_(form, REGISTRATION_FORM_FIELDS.city, '', null);
   upsertRegistrationTextItem_(form, REGISTRATION_FORM_FIELDS.postalCode, 'Format : A1A 1A1',
     FormApp.createTextValidation().setHelpText('Entrez un code postal canadien au format A1A 1A1.')
-      .requireTextMatchesPattern('(?i)^[ABCEGHJ-NPRSTVXY][0-9][ABCEGHJ-NPRSTV-Z][ -]?[0-9][ABCEGHJ-NPRSTV-Z][0-9]$').build());
+      .requireTextLengthGreaterThanOrEqualTo(6).build());
   upsertRegistrationTextItem_(form, REGISTRATION_FORM_FIELDS.contactName, '', null);
   upsertRegistrationTextItem_(form, REGISTRATION_FORM_FIELDS.phone, 'Exemple : 514 555-1234, poste 123',
     FormApp.createTextValidation().setHelpText('Entrez un numéro canadien de 10 chiffres. Un poste est facultatif.')

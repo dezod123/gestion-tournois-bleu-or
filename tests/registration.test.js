@@ -166,5 +166,6 @@ new vm.Script(siteScript, { filename: 'site/app.js' });
 const siteConfig = fs.readFileSync(path.join(root, 'site/config.js'), 'utf8');
 assert.equal(siteConfig.includes('REGISTRATION_FORM_URL'), false);
 assert.match(fs.readFileSync(path.join(root, 'apps-script/Publisher.gs'), 'utf8'), /registrationUrl/);
+assert.equal(fs.readFileSync(path.join(root, 'apps-script/Registration.gs'), 'utf8').includes('requireTextMatchesPattern'), false);
 
 console.log('Google Forms registration tests passed.');
