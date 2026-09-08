@@ -9,8 +9,11 @@ const REGISTRATION_FORM_FIELDS = Object.freeze({
   email: 'Courriel',
   division: 'Catégorie',
   consent: 'Consentement',
-  consentChoice: 'Je confirme que les renseignements sont exacts et qu’ils peuvent être utilisés pour traiter cette inscription.'
+  consentChoice: 'Oui, j’accepte.'
 });
+
+const REGISTRATION_POSTAL_PATTERN = '^[ABCEGHJ-NPRSTVXYabceghj-nprstvxy][0-9][ABCEGHJ-NPRSTV-Zabceghj-nprstv-z][ -]?[0-9][ABCEGHJ-NPRSTV-Zabceghj-nprstv-z][0-9]$';
+const REGISTRATION_PHONE_PATTERN = '^(\\+1[ .-]?)?[(]?[0-9]{3}[)]?[ .-]?[0-9]{3}[ .-]?[0-9]{4}([ ]+([Pp][Oo][Ss][Tt][Ee]?|[Ee][Xx][Tt]?|[Xx])[ .:]*[0-9]{1,8})?$';
 
 function creerOuMettreAJourFormulaireInscription() {
   assertAdminContext_();
@@ -173,11 +176,11 @@ function configureRegistrationForm_(form, tournament, divisions) {
   upsertRegistrationTextItem_(form, REGISTRATION_FORM_FIELDS.city, '', null);
   upsertRegistrationTextItem_(form, REGISTRATION_FORM_FIELDS.postalCode, 'Format : A1A 1A1',
     FormApp.createTextValidation().setHelpText('Entrez un code postal canadien au format A1A 1A1.')
-      .requireTextLengthGreaterThanOrEqualTo(6).build());
+      .requireTextMatchesPattern(REGISTRATION_POSTAL_PATTERN).build());
   upsertRegistrationTextItem_(form, REGISTRATION_FORM_FIELDS.contactName, '', null);
   upsertRegistrationTextItem_(form, REGISTRATION_FORM_FIELDS.phone, 'Exemple : 514 555-1234, poste 123',
     FormApp.createTextValidation().setHelpText('Entrez un numéro canadien de 10 chiffres. Un poste est facultatif.')
-      .requireTextLengthGreaterThanOrEqualTo(10).build());
+      .requireTextMatchesPattern(REGISTRATION_PHONE_PATTERN).build());
   upsertRegistrationTextItem_(form, REGISTRATION_FORM_FIELDS.email, '',
     FormApp.createTextValidation().setHelpText('Entrez une adresse courriel complète, par exemple nom@ecole.ca.')
       .requireTextIsEmail().build());
@@ -215,7 +218,7 @@ function upsertRegistrationConsentItem_(form) {
   const existing = managedRegistrationItem_(form, REGISTRATION_FORM_FIELDS.consent, FormApp.ItemType.CHECKBOX);
   const item = existing ? existing.asCheckboxItem() : form.addCheckboxItem();
   item.setTitle(REGISTRATION_FORM_FIELDS.consent)
-    .setHelpText('Cette confirmation est obligatoire pour envoyer le formulaire.')
+    .setHelpText('Je confirme que les renseignements sont exacts et qu’ils peuvent être utilisés pour traiter cette inscription.')
     .setChoiceValues([REGISTRATION_FORM_FIELDS.consentChoice])
     .setRequired(true);
   return item;

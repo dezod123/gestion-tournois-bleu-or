@@ -57,9 +57,17 @@ assert.match(context.registrationFormDescription_(tournament, 'America/Toronto')
 
 assert.equal(context.normalizePostalCode_('h1h-1h1'), 'H1H 1H1');
 assert.throws(() => context.normalizePostalCode_('D1A 1A1'), /format A1A 1A1/);
+const postalPattern = new RegExp(vm.runInContext('REGISTRATION_POSTAL_PATTERN', context));
+assert.equal(postalPattern.test('H2P 2L8'), true);
+assert.equal(postalPattern.test('h2p2l8'), true);
+assert.equal(postalPattern.test('test postal'), false);
 assert.equal(context.normalizePhone_('+1 (514) 555-0101'), '514 555-0101');
 assert.equal(context.normalizePhone_('514 555-0101 poste 71157'), '514 555-0101 poste 71157');
 assert.throws(() => context.normalizePhone_('555-0101'), /10 chiffres/);
+const phonePattern = new RegExp(vm.runInContext('REGISTRATION_PHONE_PATTERN', context));
+assert.equal(phonePattern.test('514 555-1234'), true);
+assert.equal(phonePattern.test('+1 (514) 555-1234 poste 77'), true);
+assert.equal(phonePattern.test('ttestphone'), false);
 assert.equal(context.normalizeEmail_(' Camille@Example.com '), 'camille@example.com');
 assert.throws(() => context.normalizeEmail_('camille@ecole'), /adresse courriel complète/);
 assert.equal(context.safeSheetText_('=IMPORTXML("url")'), "'=IMPORTXML(\"url\")");
@@ -160,12 +168,16 @@ assert.deepEqual(
   form.items.find((item) => item.title === 'Catégorie').choices,
   ['Atome masculin', 'Benjamin féminin']
 );
+assert.equal(form.items.find((item) => item.title === 'Consentement').choices.join('|'), 'Oui, j’accepte.');
 
 const siteScript = fs.readFileSync(path.join(root, 'site/app.js'), 'utf8');
 new vm.Script(siteScript, { filename: 'site/app.js' });
 const siteConfig = fs.readFileSync(path.join(root, 'site/config.js'), 'utf8');
 assert.equal(siteConfig.includes('REGISTRATION_FORM_URL'), false);
 assert.match(fs.readFileSync(path.join(root, 'apps-script/Publisher.gs'), 'utf8'), /registrationUrl/);
-assert.equal(fs.readFileSync(path.join(root, 'apps-script/Registration.gs'), 'utf8').includes('requireTextMatchesPattern'), false);
+const registrationSource = fs.readFileSync(path.join(root, 'apps-script/Registration.gs'), 'utf8');
+assert.equal(registrationSource.includes('(?i)'), false);
+assert.equal(vm.runInContext('REGISTRATION_PHONE_PATTERN', context).includes('(?:'), false);
+assert.equal(vm.runInContext('REGISTRATION_POSTAL_PATTERN', context).includes('(?:'), false);
 
 console.log('Google Forms registration tests passed.');
