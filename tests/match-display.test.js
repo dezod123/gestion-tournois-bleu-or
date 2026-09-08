@@ -53,4 +53,8 @@ assert.equal(fakeSheet.headers.indexOf('Nom équipe domicile'), fakeSheet.header
 assert.equal(fakeSheet.headers.indexOf('Nom équipe visiteuse'), fakeSheet.headers.indexOf('Équipe visiteuse') + 1);
 assert.equal(fakeSheet.headers.indexOf('Score domicile'), originalHeaders.indexOf('Score domicile') + 2);
 
+const displaySource = fs.readFileSync(path.join(root, 'apps-script', 'MatchDisplay.gs'), 'utf8');
+assert.match(displaySource, /homeNameRange\.clearDataValidations\(\)\.setValues/);
+assert.match(displaySource, /awayNameRange\.clearDataValidations\(\)\.setValues/);
+
 console.log('Match display tests passed.');

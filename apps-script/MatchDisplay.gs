@@ -39,8 +39,11 @@ function refreshMatchTeamNames_(spreadsheet) {
     homeNames.push([matchTeamNameForId_(homeIds[index][0], teamIndex)]);
     awayNames.push([matchTeamNameForId_(awayIds[index][0], teamIndex)]);
   }
-  matchSheet.getRange(2, headerColumn_(matchSheet, 'Nom équipe domicile'), rowCount, 1).setValues(homeNames);
-  matchSheet.getRange(2, headerColumn_(matchSheet, 'Nom équipe visiteuse'), rowCount, 1).setValues(awayNames);
+  const homeNameRange = matchSheet.getRange(2, headerColumn_(matchSheet, 'Nom équipe domicile'), rowCount, 1);
+  const awayNameRange = matchSheet.getRange(2, headerColumn_(matchSheet, 'Nom équipe visiteuse'), rowCount, 1);
+  // Une colonne insérée peut hériter de la validation de l’ancienne colonne d’ID voisine.
+  homeNameRange.clearDataValidations().setValues(homeNames);
+  awayNameRange.clearDataValidations().setValues(awayNames);
   return homeIds.filter(function(row, index) { return row[0] || awayIds[index][0]; }).length;
 }
 
