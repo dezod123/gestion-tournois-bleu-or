@@ -52,9 +52,9 @@ Si une erreur bloquante existe, l'instantané précédent demeure intact.
 
 ## Inscriptions
 
-Le formulaire public est rendu par Apps Script et écrit uniquement dans INSCRIPTIONS. Il reçoit seulement la configuration nécessaire : éditions ouvertes, divisions actives, dates, frais et instructions publiques. Les coordonnées personnelles ne quittent pas le classeur privé.
+Chaque tournoi peut posséder un Google Form généré depuis sa configuration. Une réponse correspond à une équipe et est conservée dans un onglet brut privé. L'ouverture ou la soumission du formulaire n'exécute pas notre Apps Script.
 
-Chaque équipe demandée possède sa propre ligne et son propre statut. L'approbation administrative crée une équipe officielle liée à son inscription source; elle n'est jamais déclenchée automatiquement par la soumission publique.
+Une commande administrative importe en lot les nouvelles réponses dans `INSCRIPTIONS`, normalise les données et génère les identifiants. L'approbation crée ensuite une équipe officielle liée à son inscription source; elle n'est jamais déclenchée automatiquement par la soumission publique. Le résumé des réponses du formulaire demeure privé.
 
 ## Identifiants et planification
 

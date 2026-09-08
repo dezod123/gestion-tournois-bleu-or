@@ -11,9 +11,7 @@ const context = vm.createContext({
     getActiveUser: () => ({ getEmail: () => 'admin@example.com' })
   },
   Utilities: {
-    formatDate: () => '2026-09-07',
-    Charset: { UTF_8: 'UTF_8' },
-    DigestAlgorithm: { SHA_256: 'SHA_256' }
+    formatDate: () => '2026-09-07'
   }
 });
 
@@ -26,134 +24,138 @@ const context = vm.createContext({
 });
 
 context.setting_ = (_key, fallback) => fallback;
-context.registrationOptions_ = () => [{
-  id: 'TRN-TEST',
-  name: 'Tournoi test',
-  divisions: [
-    { id: 'DIV-A', name: 'Division A' },
-    { id: 'DIV-B', name: 'Division B' }
-  ]
-}];
+const app = vm.runInContext('APP', context);
 
-const validPayload = {
-  token: 'token-test',
-  tournamentId: 'TRN-TEST',
-  school: 'École du Parc',
-  address: '123, rue Principale',
-  city: 'Montréal',
-  postalCode: 'H1H 1H1',
-  contactName: 'Camille Tremblay',
-  phone: '+1 514 555-0101',
-  email: 'Camille@example.com',
-  website: '',
-  consent: true,
-  teams: [
-    { name: 'Les Aigles', divisionId: 'DIV-A' },
-    { name: 'Les Lynx', divisionId: 'DIV-B' }
-  ]
+assert.ok(app.headers.TOURNOIS.includes('ID formulaire inscription'));
+assert.ok(app.headers.TOURNOIS.includes('URL formulaire inscription'));
+assert.ok(app.headers.INSCRIPTIONS.includes('ID réponse formulaire'));
+
+const tournament = {
+  __row: 2,
+  'ID tournoi': 'TRN-TEST',
+  Nom: 'Tournoi test',
+  'Édition': '2026',
+  Statut: 'ACTIF',
+  'Inscriptions ouvertes': true,
+  'Date début': '2026-10-09',
+  'Date fin': '2026-10-11',
+  'Date limite inscription': '2026-09-18',
+  'Frais inscription': 350,
+  'Instructions paiement': 'Paiement par chèque.',
+  'Courriel contact inscriptions': 'tournoi@example.com'
 };
+const divisions = [
+  { 'ID tournoi': 'TRN-TEST', 'ID division': 'DIV-A', Nom: 'Atome masculin', Actif: true },
+  { 'ID tournoi': 'TRN-TEST', 'ID division': 'DIV-B', Nom: 'Benjamin féminin', Actif: true }
+];
 
-const validated = context.validateRegistrationPayload_(validPayload);
-assert.equal(validated.email, 'camille@example.com');
-assert.equal(validated.postalCode, 'H1H 1H1');
-assert.equal(validated.phone, '514 555-0101');
-assert.equal(validated.teams.length, 2);
-assert.equal(validated.tournament.id, 'TRN-TEST');
-
-assert.throws(
-  () => context.validateRegistrationPayload_({
-    ...validPayload,
-    teams: [{ name: 'Les Aigles', divisionId: 'DIV-INCONNUE' }]
-  }),
-  /n’est plus disponible/
-);
-
-assert.throws(
-  () => context.validateRegistrationPayload_({
-    ...validPayload,
-    teams: [
-      { name: 'Les Aigles', divisionId: 'DIV-A' },
-      { name: 'les aigles', divisionId: 'DIV-A' }
-    ]
-  }),
-  /apparaissent deux fois/
-);
-
-assert.throws(
-  () => context.validateRegistrationPayload_({ ...validPayload, consent: false }),
-  /confirmer/
-);
+assert.equal(context.registrationFormTitle_(tournament), 'Inscription — Tournoi test — 2026');
+assert.equal(context.registrationIsOpen_(tournament, '2026-09-07'), true);
+assert.equal(context.registrationIsOpen_(tournament, '2026-09-19'), false);
+assert.equal(context.registrationIsOpen_({ ...tournament, 'Inscriptions ouvertes': false }, '2026-09-07'), false);
+assert.match(context.registrationFormDescription_(tournament, 'America/Toronto'), /350,00 \$ par équipe/);
 
 assert.equal(context.normalizePostalCode_('h1h-1h1'), 'H1H 1H1');
 assert.throws(() => context.normalizePostalCode_('D1A 1A1'), /format A1A 1A1/);
-assert.equal(context.normalizePhone_('(514) 555-0101'), '514 555-0101');
-assert.equal(context.normalizePhone_('+1 514 555 0101'), '514 555-0101');
+assert.equal(context.normalizePhone_('+1 (514) 555-0101'), '514 555-0101');
+assert.equal(context.normalizePhone_('514 555-0101 poste 71157'), '514 555-0101 poste 71157');
 assert.throws(() => context.normalizePhone_('555-0101'), /10 chiffres/);
-assert.throws(() => context.normalizePhone_('000 555-0101'), /10 chiffres/);
-assert.throws(
-  () => context.validateRegistrationPayload_({ ...validPayload, email: 'camille@ecole' }),
-  /adresse courriel complète/
-);
-
+assert.equal(context.normalizeEmail_(' Camille@Example.com '), 'camille@example.com');
+assert.throws(() => context.normalizeEmail_('camille@ecole'), /adresse courriel complète/);
 assert.equal(context.safeSheetText_('=IMPORTXML("url")'), "'=IMPORTXML(\"url\")");
-assert.equal(context.safeSheetText_('+1 514 555-0101'), "'+1 514 555-0101");
-assert.equal(context.safeSheetText_('École du Parc'), 'École du Parc');
 
-const safeJson = context.safeJsonForHtml_({ value: '</script><script>alert(1)</script>' });
-assert.equal(safeJson.includes('</script>'), false);
+function fakeResponse(answers) {
+  return {
+    getItemResponses: () => Object.entries(answers).map(([title, value]) => ({
+      getItem: () => ({ getTitle: () => title }),
+      getResponse: () => value
+    }))
+  };
+}
 
-const html = fs.readFileSync(path.join(root, 'apps-script/RegistrationForm.html'), 'utf8');
-const scripts = Array.from(html.matchAll(/<script>([\s\S]*?)<\/script>/g));
-assert.ok(scripts.length);
-const browserScript = scripts.at(-1)[1].replace(
-  '<?!= bootstrapJson ?>',
-  '{"token":"test","tournaments":[],"maxTeams":10}'
+const answers = {
+  'Nom de l’équipe sportive': 'Les Aigles',
+  École: 'École du Parc',
+  'Adresse de l’école': '123, rue Principale',
+  Ville: 'Montréal',
+  'Code postal': 'h1h 1h1',
+  'Nom du responsable de l’équipe': 'Camille Tremblay',
+  Téléphone: '514-555-0101 poste 12',
+  Courriel: 'Camille@example.com',
+  Catégorie: 'Benjamin féminin',
+  Consentement: ['Je confirme']
+};
+const imported = context.registrationFromGoogleFormResponse_(tournament, divisions, fakeResponse(answers));
+assert.equal(imported.tournamentId, 'TRN-TEST');
+assert.equal(imported.divisionId, 'DIV-B');
+assert.equal(imported.postalCode, 'H1H 1H1');
+assert.equal(imported.phone, '514 555-0101 poste 12');
+assert.equal(imported.email, 'camille@example.com');
+assert.throws(
+  () => context.registrationFromGoogleFormResponse_(tournament, divisions, fakeResponse({ ...answers, Catégorie: 'Inconnue' })),
+  /catégorie sélectionnée/
 );
-new vm.Script(browserScript, { filename: 'Registration.browser.js' });
+assert.throws(
+  () => context.registrationFromGoogleFormResponse_(tournament, divisions, fakeResponse({ ...answers, Consentement: '' })),
+  /consentement obligatoire/
+);
 
-const browserElements = {
-  'registration-form': { hidden: false },
-  closed: { hidden: true }
-};
-const browserContext = vm.createContext({
-  console,
-  document: { getElementById: (id) => browserElements[id] }
+class FakeItem {
+  constructor(type) { this.type = type; this.title = ''; this.helpText = ''; this.required = false; this.choices = []; }
+  getType() { return this.type; }
+  getTitle() { return this.title; }
+  asTextItem() { return this; }
+  asListItem() { return this; }
+  asCheckboxItem() { return this; }
+  setTitle(value) { this.title = value; return this; }
+  setHelpText(value) { this.helpText = value; return this; }
+  setRequired(value) { this.required = value; return this; }
+  setValidation(value) { this.validation = value; return this; }
+  setChoiceValues(value) { this.choices = value; return this; }
+}
+
+class FakeForm {
+  constructor() { this.items = []; }
+  getItems() { return this.items; }
+  addTextItem() { const item = new FakeItem('TEXT'); this.items.push(item); return item; }
+  addListItem() { const item = new FakeItem('LIST'); this.items.push(item); return item; }
+  addCheckboxItem() { const item = new FakeItem('CHECKBOX'); this.items.push(item); return item; }
+}
+[
+  'setTitle', 'setDescription', 'setConfirmationMessage', 'setCollectEmail', 'setPublishingSummary', 'setShowLinkToRespondAgain',
+  'setLimitOneResponsePerUser', 'setProgressBar', 'setShuffleQuestions', 'setPublished', 'setCustomClosedFormMessage',
+  'setAcceptingResponses'
+].forEach((method) => {
+  FakeForm.prototype[method] = function(value) { this[method + 'Value'] = value; return this; };
 });
-vm.runInContext(browserScript, browserContext, { filename: 'Registration.browser.js' });
-assert.equal(vm.runInContext("formatPostalCode('h1h-1h1')", browserContext), 'H1H 1H1');
-assert.equal(vm.runInContext("formatPhone('+1 514 555-0101')", browserContext), '514 555-0101');
-assert.equal(vm.runInContext("formatPhone('51455501019')", browserContext), '51455501019');
-assert.equal(vm.runInContext("EMAIL_PATTERN.test('nom@ecole.ca')", browserContext), true);
 
-const writes = [];
-let idSequence = 0;
-const cacheValues = new Map();
-context.newId_ = (prefix) => `${prefix}-TEST-${++idSequence}`;
-context.validateRegistrationToken_ = () => {};
-context.enforceRegistrationRateLimit_ = () => {};
-context.rejectRecentDuplicate_ = () => {};
-context.incrementRegistrationRateLimit_ = () => {};
-context.registrationDuplicateKey_ = () => 'REG_DUP_TEST';
-context.writeObjectRow_ = (sheet, values) => { writes.push({ sheet, values }); };
-context.LockService = {
-  getScriptLock: () => ({ tryLock: () => true, releaseLock: () => {} })
+function validationBuilder() {
+  return {
+    setHelpText() { return this; },
+    requireTextMatchesPattern() { return this; },
+    requireTextIsEmail() { return this; },
+    build() { return { valid: true }; }
+  };
+}
+context.FormApp = {
+  ItemType: { TEXT: 'TEXT', LIST: 'LIST', CHECKBOX: 'CHECKBOX' },
+  createTextValidation: validationBuilder
 };
-context.CacheService = {
-  getScriptCache: () => ({
-    get: (key) => cacheValues.get(key) || null,
-    put: (key, value) => cacheValues.set(key, value),
-    remove: (key) => cacheValues.delete(key)
-  })
-};
-context.SpreadsheetApp = { flush: () => {} };
+const form = new FakeForm();
+context.configureRegistrationForm_(form, tournament, divisions.map((division) => ({ id: division['ID division'], name: division.Nom })));
+assert.equal(form.items.length, 10);
+assert.equal(form.setCollectEmailValue, false);
+assert.equal(form.setPublishingSummaryValue, false);
+assert.equal(form.setAcceptingResponsesValue, true);
+assert.deepEqual(
+  form.items.find((item) => item.title === 'Catégorie').choices,
+  ['Atome masculin', 'Benjamin féminin']
+);
 
-const result = context.soumettreInscription(validPayload);
-assert.equal(result.success, true);
-assert.equal(result.teamCount, 2);
-assert.equal(writes.length, 2);
-assert.equal(writes[0].values.Statut, 'EN ATTENTE');
-assert.equal(writes[0].values['Nombre équipes'], 1);
-assert.equal(writes[0].values['ID soumission'], writes[1].values['ID soumission']);
-assert.notEqual(writes[0].values['ID inscription'], writes[1].values['ID inscription']);
+const siteScript = fs.readFileSync(path.join(root, 'site/app.js'), 'utf8');
+new vm.Script(siteScript, { filename: 'site/app.js' });
+const siteConfig = fs.readFileSync(path.join(root, 'site/config.js'), 'utf8');
+assert.equal(siteConfig.includes('REGISTRATION_FORM_URL'), false);
+assert.match(fs.readFileSync(path.join(root, 'apps-script/Publisher.gs'), 'utf8'), /registrationUrl/);
 
-console.log('Registration validation tests passed.');
+console.log('Google Forms registration tests passed.');

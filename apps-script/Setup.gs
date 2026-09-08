@@ -8,6 +8,7 @@ function initialiserClasseur() {
   }).forEach(function(sheetName) {
     ensureSheetSchema_(spreadsheet, sheetName, APP.headers[sheetName]);
   });
+  resetRegistrationFormsForCopiedWorkbook_(spreadsheet);
   seedSettings_();
   const publicSpreadsheet = ensurePublicSpreadsheet_();
   applyValidations_();
@@ -53,24 +54,32 @@ function ensureSheetSchema_(spreadsheet, sheetName, requiredHeaders) {
 function seedSettings_() {
   const defaults = [
     ['VERSION_SCHEMA', '1', 'Version du contrat de données publiques'],
-    ['VERSION_STRUCTURE_ADMIN', '3', 'Version de la structure du classeur administratif'],
+    ['VERSION_STRUCTURE_ADMIN', '4', 'Version de la structure du classeur administratif'],
     ['LANGUE', 'fr-CA', 'Langue principale du site'],
     ['FUSEAU_HORAIRE', 'America/Toronto', 'Fuseau utilisé pour les dates de publication'],
     ['DERNIERE_PUBLICATION', '', 'Mise à jour automatiquement'],
     ['ID_CLASSEUR_ADMIN_LIE', '', 'Permet de détecter automatiquement une copie du gabarit'],
     ['ID_CLASSEUR_PUBLIC', '', 'Identifiant du classeur ne contenant que les données publiques'],
     ['URL_CLASSEUR_PUBLIC', '', 'Lien pratique vers le classeur public'],
-    ['MESSAGE_PUBLIC', '', 'Message facultatif affiché sur le site'],
-    ['LIMITE_EQUIPES_PAR_SOUMISSION', '10', 'Protection du formulaire public'],
-    ['LIMITE_SOUMISSIONS_10_MIN', '20', 'Protection globale contre les soumissions automatisées'],
-    ['DELAI_MIN_FORMULAIRE_SECONDES', '3', 'Temps minimal avant de pouvoir soumettre le formulaire']
+    ['MESSAGE_PUBLIC', '', 'Message facultatif affiché sur le site']
   ];
   const current = rowsAsObjects_(APP.sheets.settings).map(function(row) { return normalize_(row['Clé']); });
   const sheet = adminSpreadsheet_().getSheetByName(APP.sheets.settings);
   defaults.forEach(function(row) {
     if (current.indexOf(normalize_(row[0])) < 0) sheet.appendRow(row);
   });
-  upsertSetting_('VERSION_STRUCTURE_ADMIN', '3', 'Version de la structure du classeur administratif');
+  upsertSetting_('VERSION_STRUCTURE_ADMIN', '4', 'Version de la structure du classeur administratif');
+}
+
+function resetRegistrationFormsForCopiedWorkbook_(spreadsheet) {
+  const linkedAdminId = String(setting_('ID_CLASSEUR_ADMIN_LIE', '')).trim();
+  if (!linkedAdminId || linkedAdminId === spreadsheet.getId()) return;
+  const sheet = spreadsheet.getSheetByName(APP.sheets.tournaments);
+  const headers = ['ID formulaire inscription', 'URL formulaire inscription', 'URL modification formulaire', 'Dernière mise à jour formulaire'];
+  headers.forEach(function(header) {
+    const column = headerColumn_(sheet, header);
+    sheet.getRange(2, column, Math.max(sheet.getMaxRows() - 1, 1), 1).clearContent();
+  });
 }
 
 function applyValidations_() {
@@ -158,7 +167,8 @@ function applyFormats_() {
   });
   [
     [APP.sheets.registrations, 'Horodatage'],
-    [APP.sheets.registrations, 'Date traitement']
+    [APP.sheets.registrations, 'Date traitement'],
+    [APP.sheets.tournaments, 'Dernière mise à jour formulaire']
   ].forEach(function(spec) {
     const sheet = spreadsheet.getSheetByName(spec[0]);
     sheet.getRange(2, headerColumn_(sheet, spec[1]), Math.max(sheet.getMaxRows() - 1, 1), 1).setNumberFormat('yyyy-mm-dd hh:mm');

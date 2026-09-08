@@ -1,82 +1,105 @@
-# Formulaire d'inscription et approbation
+# Google Forms et approbation des inscriptions
 
 ## Fonctionnement
 
-Le formulaire est une application Web Apps Script appartenant au propriétaire du classeur. Il n'utilise aucun service payant ni marque de formulaire externe.
+Chaque tournoi peut posséder son propre Google Form, créé et mis à jour automatiquement depuis le classeur administratif. Une soumission correspond à une seule équipe.
 
-Un responsable peut ajouter plusieurs équipes dans un même envoi. Le serveur crée toutefois une ligne INSCRIPTIONS et un identifiant distincts pour chaque équipe. Elles peuvent ainsi être approuvées ou refusées séparément. Les coordonnées communes restent dans le classeur administratif privé et ne sont jamais ajoutées aux données publiques.
+Le formulaire et ses réponses appartiennent au compte Google du client. Les réponses brutes sont enregistrées dans un onglet privé créé par Google Forms. Elles ne sont jamais publiées directement.
 
-## Configuration dans TOURNOIS
+```text
+Google Form du tournoi
+        ↓
+Réponses brutes privées
+        ↓  Tournoi → Importer les nouvelles inscriptions
+INSCRIPTIONS — EN ATTENTE
+        ↓
+Approbation ou refus administratif
+```
 
-Pour rendre une édition disponible dans le formulaire :
+## Créer le formulaire d'un tournoi
 
-1. conserver son statut à ACTIF;
-2. cocher Inscriptions ouvertes;
-3. saisir une date limite actuelle ou future, ou laisser la cellule vide;
-4. remplir facultativement les frais, les instructions de paiement et le courriel de contact;
-5. vérifier qu'au moins une division active lui est associée.
+1. Compléter la ligne du tournoi dans `TOURNOIS`.
+2. Ajouter au moins une division active dans `DIVISIONS`.
+3. Sélectionner une cellule de la ligne du tournoi.
+4. Choisir **Tournoi → Créer / mettre à jour le formulaire sélectionné**.
+5. Autoriser l'accès à Google Forms lors de la première utilisation.
+6. Ouvrir l'URL répondant dans une fenêtre de navigation privée et soumettre une réponse d'essai. Si Google exige un compte de l'organisation, vérifier la politique de partage externe de Google Workspace.
+7. Choisir **Tournoi → Publier les changements** pour faire apparaître le lien sur le site.
 
-Les choix présentés par le formulaire sont lus au chargement. Une division inactive ou un tournoi fermé ne peut pas être forcé depuis le navigateur, car le serveur valide de nouveau la configuration au moment de la soumission.
+Le script crée le formulaire, configure les champs obligatoires et leurs validations françaises, désactive le résumé public des réponses, relie les réponses au classeur privé et remplit automatiquement les colonnes techniques suivantes :
 
-## Déploiement initial
+- `ID formulaire inscription`;
+- `URL formulaire inscription`;
+- `URL modification formulaire`;
+- `Dernière mise à jour formulaire`.
 
-Avant le déploiement, copier tous les fichiers mis à jour dans le projet Apps Script, ajouter Registration.gs et créer un fichier HTML nommé RegistrationForm avec le contenu de RegistrationForm.html. Exécuter ensuite initialiserClasseur depuis l'éditeur lié au Google Sheet. Cette étape enregistre de manière privée l'identifiant du classeur administratif nécessaire à l'application Web.
+Ces colonnes ne doivent pas être remplies manuellement. Seule l'URL destinée aux répondants peut être incluse dans l'instantané public.
 
-Dans Apps Script :
+## Configuration et ouverture
 
-1. choisir **Déployer → Nouveau déploiement**;
-2. sélectionner le type **Application Web**;
-3. ajouter une description, par exemple **Formulaire inscriptions v1**;
-4. choisir **Exécuter en tant que : Moi**;
-5. choisir **Qui a accès : Tout le monde**;
-6. autoriser le déploiement et copier l'URL terminant par /exec.
+Le formulaire reprend automatiquement :
 
-Utiliser l'URL /exec pour les essais et le site public. L'URL /dev est réservée aux utilisateurs autorisés à modifier le script.
+- le nom et l'édition du tournoi;
+- les dates;
+- la date limite d'inscription;
+- les frais par équipe;
+- les instructions de paiement;
+- le courriel de contact;
+- les divisions actives du tournoi.
 
-Dans site/config.js, placer l'URL dans REGISTRATION_FORM_URL. Le bouton **Inscrire une équipe** apparaîtra automatiquement sur GitHub Pages.
+Pour accepter des réponses, le tournoi doit être `ACTIF`, la case `Inscriptions ouvertes` doit être cochée et la date limite ne doit pas être dépassée. Un déclencheur quotidien ferme automatiquement les formulaires arrivés à échéance. Le site masque également le bouton lorsque les inscriptions sont fermées.
 
-## Mise à jour ultérieure
+Après avoir modifié les divisions, les frais, les dates ou les instructions, utiliser de nouveau **Créer / mettre à jour le formulaire sélectionné**. La commande **Synchroniser tous les formulaires** permet de mettre à jour en lot tous les formulaires déjà créés.
 
-Modifier le code dans Apps Script ne remplace pas automatiquement la version publique :
+Le thème, les couleurs et le logo peuvent être personnalisés directement dans Google Forms. Ne pas renommer, supprimer ni changer le type des questions gérées par le système; l'importation dépend de leurs titres stables. Les questions ajoutées manuellement ne sont pas importées dans `INSCRIPTIONS`.
 
-1. choisir **Déployer → Gérer les déploiements**;
-2. modifier le déploiement existant;
-3. sélectionner **Nouvelle version**;
-4. déployer.
+Google Forms crée aussi un onglet de réponses brutes dans le classeur administratif. Le conserver : il sert de sauvegarde lisible par les administrateurs, même si l'importation automatisée consulte directement le formulaire.
 
-L'URL /exec demeure normalement la même. Aucune modification de site/config.js n'est alors nécessaire.
+## Champs du formulaire
 
-## Traitement administratif
+Le formulaire demande :
 
-1. Ouvrir INSCRIPTIONS.
-2. Sélectionner une ou plusieurs cellules appartenant aux lignes à traiter.
-3. Choisir **Tournoi → Approuver les inscriptions sélectionnées** ou **Refuser les inscriptions sélectionnées**.
+- nom de l'équipe sportive;
+- école;
+- adresse;
+- ville;
+- code postal canadien;
+- nom du responsable;
+- téléphone, avec poste facultatif;
+- courriel;
+- catégorie;
+- consentement.
 
-L'approbation crée une ligne EQUIPES avec un nouvel identifiant, recopie le nom et l'école, conserve le lien vers l'inscription source, puis marque l'inscription APPROUVÉE. Une seconde approbation est bloquée afin de ne pas créer de doublon.
+La page de confirmation propose de soumettre une autre réponse afin qu'une même école puisse inscrire une autre équipe sans limiter le compte Google à une seule réponse.
 
-Le refus marque l'inscription REFUSÉE et permet d'ajouter un motif interne facultatif. Aucun courriel automatique n'est envoyé dans cette version.
+## Importer les réponses
 
-## Protections intégrées
+Google Forms conserve immédiatement chaque réponse dans le classeur privé sans exécuter notre code. Pour les préparer à l'approbation :
 
-Le serveur applique plusieurs contrôles complémentaires :
+1. choisir **Tournoi → Importer les nouvelles inscriptions**;
+2. ouvrir `INSCRIPTIONS`;
+3. vérifier les nouvelles lignes marquées `EN ATTENTE`.
 
-- jeton de formulaire temporaire et utilisable une seule fois;
-- délai minimal avant l'envoi;
-- champ leurre invisible;
-- validation complète de tous les champs côté serveur;
-- nouvelle validation du tournoi et des divisions;
-- rejet temporaire des soumissions identiques;
-- limite globale configurable par période de dix minutes;
-- neutralisation des valeurs pouvant être interprétées comme des formules Google Sheets;
-- verrou empêchant deux écritures simultanées;
-- séparation physique entre les inscriptions privées et l'instantané public.
+L'importation traite tous les formulaires connus en une seule exécution. Elle normalise les coordonnées, retrouve l'identifiant de la division, génère `ID inscription` et `ID soumission`, puis conserve `ID réponse formulaire` afin de ne jamais importer deux fois la même réponse.
 
-Ces protections réduisent fortement le spam opportuniste, mais aucun formulaire public ne peut empêcher toutes les requêtes d'atteindre Apps Script. Un service spécialisé comme Turnstile pourra être ajouté plus tard si le volume ou les attaques le justifient.
+Une réponse invalide demeure dans l'onglet brut et est signalée dans le compte rendu d'importation. Les autres réponses valides sont tout de même importées.
 
-Les seuils se trouvent dans PARAMETRES :
+## Approuver ou refuser
 
-| Clé | Valeur initiale |
-|---|---:|
-| LIMITE_EQUIPES_PAR_SOUMISSION | 10 |
-| LIMITE_SOUMISSIONS_10_MIN | 20 |
-| DELAI_MIN_FORMULAIRE_SECONDES | 3 |
+1. Sélectionner une ou plusieurs lignes dans `INSCRIPTIONS`.
+2. Choisir **Tournoi → Approuver les inscriptions sélectionnées** ou **Refuser les inscriptions sélectionnées**.
+
+L'approbation crée une équipe officielle avec un nouvel `ID équipe`, conserve le lien vers l'inscription source et marque la demande `APPROUVÉE`. Le refus marque la demande `REFUSÉE` et permet d'ajouter un motif interne facultatif.
+
+Les équipes approuvées ne deviennent visibles sur le site qu'après **Publier les changements**. Aucun courriel automatique d'acceptation ou de refus n'est envoyé dans cette version.
+
+## Confidentialité, transfert et ancien formulaire
+
+- Le résumé public des réponses Google Forms est explicitement désactivé.
+- Les coordonnées, réponses brutes et liens de modification restent privés.
+- Le site public reçoit uniquement le lien répondant du formulaire et les équipes approuvées.
+- Lorsqu'une copie du gabarit est initialisée sous un autre propriétaire, les références aux anciens formulaires sont effacées. Le client génère ainsi ses propres formulaires dans son Drive.
+- L'ancienne application Web Apps Script n'est plus nécessaire. Après la migration, archiver son déploiement dans **Déployer → Gérer les déploiements**.
+- Les anciens paramètres de limitation de l'application Web peuvent demeurer dans `PARAMETRES`; cette version les ignore.
+
+Le compte qui exécute la création devient propriétaire du formulaire. Dans l'environnement final, cette commande doit donc être exécutée par un compte appartenant au client.

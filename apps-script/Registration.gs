@@ -1,122 +1,386 @@
-function doGet() {
-  const template = HtmlService.createTemplateFromFile('RegistrationForm');
-  template.bootstrapJson = safeJsonForHtml_({
-    token: createRegistrationToken_(),
-    tournaments: registrationOptions_(),
-    maxTeams: Math.max(1, Math.min(20, toNumber_(setting_('LIMITE_EQUIPES_PAR_SOUMISSION', 10), 10)))
-  });
-  return template.evaluate()
-    .setTitle('Inscription au tournoi')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
-}
+const REGISTRATION_FORM_FIELDS = Object.freeze({
+  teamName: 'Nom de l’équipe sportive',
+  school: 'École',
+  address: 'Adresse de l’école',
+  city: 'Ville',
+  postalCode: 'Code postal',
+  contactName: 'Nom du responsable de l’équipe',
+  phone: 'Téléphone',
+  email: 'Courriel',
+  division: 'Catégorie',
+  consent: 'Consentement',
+  consentChoice: 'Je confirme que les renseignements sont exacts et qu’ils peuvent être utilisés pour traiter cette inscription.'
+});
 
-function soumettreInscription(payload) {
-  if (!payload || typeof payload !== 'object') throw new Error('Soumission invalide.');
-  if (cleanText_(payload.website, 200, false)) throw new Error('La soumission n’a pas pu être acceptée.');
-  const token = cleanText_(payload.token, 80, true, 'Session du formulaire');
-  const lock = LockService.getScriptLock();
+function creerOuMettreAJourFormulaireInscription() {
+  assertAdminContext_();
+  const ui = SpreadsheetApp.getUi();
+  const lock = LockService.getDocumentLock();
   if (!lock.tryLock(10000)) {
-    throw new Error('Le formulaire reçoit plusieurs demandes. Veuillez réessayer dans quelques secondes.');
+    ui.alert('Une autre opération est en cours. Réessayez dans quelques secondes.');
+    return;
   }
-
   try {
-    validateRegistrationToken_(token);
-    const submitted = validateRegistrationPayload_(payload);
-    enforceRegistrationRateLimit_();
-    rejectRecentDuplicate_(submitted);
-
-    const submissionId = newId_('SOUM');
-    const timestamp = new Date();
-    const registrationIds = submitted.teams.map(function(team) {
-      const registrationId = newId_('INS');
-      writeObjectRow_(APP.sheets.registrations, {
-        'ID inscription': registrationId,
-        'Horodatage': timestamp,
-        'ID tournoi': submitted.tournament.id,
-        'Nom équipe': safeSheetText_(team.name),
-        'École': safeSheetText_(submitted.school),
-        'Adresse': safeSheetText_(submitted.address),
-        'Ville': safeSheetText_(submitted.city),
-        'Code postal': safeSheetText_(submitted.postalCode),
-        'Responsable': safeSheetText_(submitted.contactName),
-        'Téléphone': safeSheetText_(submitted.phone),
-        'Courriel': safeSheetText_(submitted.email),
-        'ID division': team.divisionId,
-        'Nombre équipes': 1,
-        'Statut': APP.statuses.pending,
-        'ID soumission': submissionId
-      });
-      return registrationId;
-    });
-
-    const cache = CacheService.getScriptCache();
-    cache.remove('REG_TOKEN_' + submitted.token);
-    cache.put(registrationDuplicateKey_(submitted), '1', 600);
-    incrementRegistrationRateLimit_();
+    const tournament = selectedTournamentForRegistrationForm_();
+    const result = syncRegistrationForm_(tournament);
+    ensureRegistrationFormStatusTrigger_();
     SpreadsheetApp.flush();
-    return {
-      success: true,
-      submissionId: submissionId,
-      registrationIds: registrationIds,
-      teamCount: registrationIds.length,
-      message: registrationIds.length === 1
-        ? 'Votre inscription a été reçue et sera vérifiée par l’organisation.'
-        : 'Vos ' + registrationIds.length + ' inscriptions ont été reçues et seront vérifiées séparément par l’organisation.'
-    };
+    ui.alert(
+      result.created ? 'Formulaire créé' : 'Formulaire mis à jour',
+      'Le formulaire « ' + result.form.getTitle() + ' » est prêt. Son lien public a été enregistré dans TOURNOIS.\n\n' +
+        'Utilisez ensuite Tournoi → Publier les changements pour mettre à jour le bouton du site.',
+      ui.ButtonSet.OK
+    );
+  } catch (error) {
+    ui.alert('Formulaire non créé', error.message || String(error), ui.ButtonSet.OK);
   } finally {
     lock.releaseLock();
   }
 }
 
-function safeJsonForHtml_(value) {
-  return JSON.stringify(value).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
-}
-
-function createRegistrationToken_() {
-  const token = Utilities.getUuid();
-  CacheService.getScriptCache().put('REG_TOKEN_' + token, JSON.stringify({ issuedAt: Date.now() }), 3600);
-  return token;
-}
-
-function validateRegistrationToken_(token) {
-  const cache = CacheService.getScriptCache();
-  const stored = cache.get('REG_TOKEN_' + token);
-  if (!stored) throw new Error('Cette session de formulaire a expiré. Rechargez la page avant de réessayer.');
-  const session = JSON.parse(stored);
-  const minimumSeconds = Math.max(0, toNumber_(setting_('DELAI_MIN_FORMULAIRE_SECONDES', 3), 3));
-  if (Date.now() - Number(session.issuedAt || 0) < minimumSeconds * 1000) {
-    throw new Error('Veuillez prendre un moment pour vérifier les renseignements avant l’envoi.');
+function synchroniserTousFormulairesInscription() {
+  assertAdminContext_();
+  const ui = SpreadsheetApp.getUi();
+  const tournaments = rowsAsObjects_(APP.sheets.tournaments).filter(function(tournament) {
+    return String(tournament['ID formulaire inscription'] || '').trim();
+  });
+  if (!tournaments.length) {
+    ui.alert('Aucun formulaire', 'Aucun tournoi ne possède encore de formulaire d’inscription.', ui.ButtonSet.OK);
+    return;
   }
+  const lock = LockService.getDocumentLock();
+  if (!lock.tryLock(10000)) {
+    ui.alert('Une autre opération est en cours. Réessayez dans quelques secondes.');
+    return;
+  }
+  const errors = [];
+  let updated = 0;
+  try {
+    tournaments.forEach(function(tournament) {
+      try {
+        syncRegistrationForm_(tournament);
+        updated += 1;
+      } catch (error) {
+        errors.push(registrationTournamentLabel_(tournament) + ' : ' + (error.message || String(error)));
+      }
+    });
+    ensureRegistrationFormStatusTrigger_();
+    SpreadsheetApp.flush();
+  } finally {
+    lock.releaseLock();
+  }
+  ui.alert(
+    errors.length ? 'Synchronisation partielle' : 'Synchronisation terminée',
+    updated + ' formulaire(s) mis à jour.' + (errors.length ? '\n\n' + errors.slice(0, 10).join('\n') : ''),
+    ui.ButtonSet.OK
+  );
 }
 
-function registrationOptions_() {
+function selectedTournamentForRegistrationForm_() {
+  const spreadsheet = SpreadsheetApp.getActive();
+  const sheet = spreadsheet && spreadsheet.getActiveSheet();
+  const range = spreadsheet && spreadsheet.getActiveRange();
+  if (!sheet || sheet.getName() !== APP.sheets.tournaments || !range || range.getRow() < 2) {
+    throw new Error('Sélectionnez d’abord une cellule de la ligne du tournoi dans l’onglet TOURNOIS.');
+  }
+  const tournament = rowsAsObjects_(APP.sheets.tournaments).find(function(row) {
+    return row.__row === range.getRow();
+  });
+  if (!tournament) throw new Error('La ligne sélectionnée ne contient aucun tournoi.');
+  if (!String(tournament['ID tournoi'] || '').trim()) {
+    const id = newId_('TRN');
+    sheet.getRange(tournament.__row, headerColumn_(sheet, 'ID tournoi')).setValue(id);
+    tournament['ID tournoi'] = id;
+  }
+  return tournament;
+}
+
+function syncRegistrationForm_(tournament) {
+  const config = registrationFormConfig_(tournament);
+  const existingId = String(tournament['ID formulaire inscription'] || '').trim();
+  let form;
+  let created = false;
+  if (existingId) {
+    try {
+      form = FormApp.openById(existingId);
+    } catch (error) {
+      throw new Error('Le formulaire existant est introuvable ou inaccessible. Vérifiez que votre compte possède un accès de modification.');
+    }
+  } else {
+    form = FormApp.create(registrationFormTitle_(tournament), true);
+    created = true;
+  }
+
+  configureRegistrationForm_(form, tournament, config.divisions);
+  const spreadsheetId = adminSpreadsheet_().getId();
+  if (form.getDestinationType() !== FormApp.DestinationType.SPREADSHEET || form.getDestinationId() !== spreadsheetId) {
+    form.setDestination(FormApp.DestinationType.SPREADSHEET, spreadsheetId);
+  }
+  writeRegistrationFormMetadata_(tournament.__row, form);
+  return { form: form, created: created };
+}
+
+function registrationFormConfig_(tournament) {
+  const tournamentId = cleanText_(tournament['ID tournoi'], 80, true, 'ID tournoi');
+  cleanText_(tournament['Nom'], 140, true, 'Nom du tournoi');
+  const divisions = rowsAsObjects_(APP.sheets.divisions).filter(function(division) {
+    return String(division['ID tournoi'] || '').trim() === tournamentId && isYes_(division['Actif']);
+  }).map(function(division) {
+    return {
+      id: cleanText_(division['ID division'], 80, true, 'ID division'),
+      name: cleanText_(division['Nom'], 140, true, 'Nom de division')
+    };
+  });
+  if (!divisions.length) throw new Error('Ajoutez au moins une division active avant de créer le formulaire.');
+  const names = {};
+  divisions.forEach(function(division) {
+    const key = normalize_(division.name);
+    if (names[key]) throw new Error('Deux divisions actives portent le même nom : « ' + division.name + ' ».');
+    names[key] = true;
+  });
+  return { tournamentId: tournamentId, divisions: divisions };
+}
+
+function configureRegistrationForm_(form, tournament, divisions) {
   const timeZone = String(setting_('FUSEAU_HORAIRE', Session.getScriptTimeZone()));
   const today = Utilities.formatDate(new Date(), timeZone, 'yyyy-MM-dd');
-  const divisions = rowsAsObjects_(APP.sheets.divisions);
-  return rowsAsObjects_(APP.sheets.tournaments).filter(function(tournament) {
-    const deadline = toIsoDate_(tournament['Date limite inscription'], timeZone);
-    return isActive_(tournament['Statut']) && isYes_(tournament['Inscriptions ouvertes']) && (!deadline || deadline >= today);
-  }).map(function(tournament) {
-    const tournamentId = String(tournament['ID tournoi'] || '').trim();
-    return {
-      id: tournamentId,
-      name: String(tournament['Nom'] || '').trim(),
-      edition: String(tournament['Édition'] || '').trim(),
-      startDate: toIsoDate_(tournament['Date début'], timeZone),
-      endDate: toIsoDate_(tournament['Date fin'], timeZone),
-      deadline: toIsoDate_(tournament['Date limite inscription'], timeZone),
-      fee: formatRegistrationFee_(tournament['Frais inscription']),
-      paymentInstructions: String(tournament['Instructions paiement'] || '').trim(),
-      contactEmail: String(tournament['Courriel contact inscriptions'] || '').trim(),
-      divisions: divisions.filter(function(division) {
-        return String(division['ID tournoi'] || '').trim() === tournamentId && isYes_(division['Actif']);
-      }).map(function(division) {
-        return { id: String(division['ID division'] || '').trim(), name: String(division['Nom'] || '').trim() };
-      }).filter(function(division) { return division.id && division.name; })
-    };
-  }).filter(function(tournament) {
-    return tournament.id && tournament.name && tournament.divisions.length;
+  form.setTitle(registrationFormTitle_(tournament));
+  form.setDescription(registrationFormDescription_(tournament, timeZone));
+  form.setConfirmationMessage('Votre inscription a été reçue et sera vérifiée par l’organisation. Utilisez le lien proposé pour inscrire une autre équipe.');
+  form.setCollectEmail(false);
+  form.setPublishingSummary(false);
+  form.setShowLinkToRespondAgain(true);
+  form.setLimitOneResponsePerUser(false);
+  form.setProgressBar(false);
+  form.setShuffleQuestions(false);
+  form.setPublished(true);
+  form.setCustomClosedFormMessage('Les inscriptions à ce tournoi sont actuellement fermées. Communiquez avec l’organisation si vous pensez qu’il s’agit d’une erreur.');
+  form.setAcceptingResponses(registrationIsOpen_(tournament, today));
+
+  upsertRegistrationTextItem_(form, REGISTRATION_FORM_FIELDS.teamName, '', null);
+  upsertRegistrationTextItem_(form, REGISTRATION_FORM_FIELDS.school, '', null);
+  upsertRegistrationTextItem_(form, REGISTRATION_FORM_FIELDS.address, '', null);
+  upsertRegistrationTextItem_(form, REGISTRATION_FORM_FIELDS.city, '', null);
+  upsertRegistrationTextItem_(form, REGISTRATION_FORM_FIELDS.postalCode, 'Format : A1A 1A1',
+    FormApp.createTextValidation().setHelpText('Entrez un code postal canadien au format A1A 1A1.')
+      .requireTextMatchesPattern('(?i)^[ABCEGHJ-NPRSTVXY][0-9][ABCEGHJ-NPRSTV-Z][ -]?[0-9][ABCEGHJ-NPRSTV-Z][0-9]$').build());
+  upsertRegistrationTextItem_(form, REGISTRATION_FORM_FIELDS.contactName, '', null);
+  upsertRegistrationTextItem_(form, REGISTRATION_FORM_FIELDS.phone, 'Exemple : 514 555-1234, poste 123',
+    FormApp.createTextValidation().setHelpText('Entrez un numéro canadien de 10 chiffres. Un poste est facultatif.')
+      .requireTextMatchesPattern('(?i)^(?:\\+?1[ .-]?)?\\(?[2-9][0-9]{2}\\)?[ .-]?[2-9][0-9]{2}[ .-]?[0-9]{4}(?:[ ]*(?:poste|post\\.?|ext\\.?|x)[ ]*[0-9]{1,8})?$').build());
+  upsertRegistrationTextItem_(form, REGISTRATION_FORM_FIELDS.email, '',
+    FormApp.createTextValidation().setHelpText('Entrez une adresse courriel complète, par exemple nom@ecole.ca.')
+      .requireTextIsEmail().build());
+  upsertRegistrationListItem_(form, REGISTRATION_FORM_FIELDS.division,
+    'Sélectionnez la catégorie de cette équipe.', divisions.map(function(division) { return division.name; }));
+  upsertRegistrationConsentItem_(form);
+}
+
+function managedRegistrationItem_(form, title, expectedType) {
+  const matches = form.getItems().filter(function(item) { return item.getTitle() === title; });
+  if (matches.length > 1) throw new Error('Le formulaire contient plusieurs questions intitulées « ' + title + ' ».');
+  if (!matches.length) return null;
+  if (matches[0].getType() !== expectedType) {
+    throw new Error('La question « ' + title + ' » n’est plus du type attendu.');
+  }
+  return matches[0];
+}
+
+function upsertRegistrationTextItem_(form, title, helpText, validation) {
+  const existing = managedRegistrationItem_(form, title, FormApp.ItemType.TEXT);
+  const item = existing ? existing.asTextItem() : form.addTextItem();
+  item.setTitle(title).setHelpText(helpText || '').setRequired(true);
+  if (validation) item.setValidation(validation);
+  return item;
+}
+
+function upsertRegistrationListItem_(form, title, helpText, choices) {
+  const existing = managedRegistrationItem_(form, title, FormApp.ItemType.LIST);
+  const item = existing ? existing.asListItem() : form.addListItem();
+  item.setTitle(title).setHelpText(helpText || '').setChoiceValues(choices).setRequired(true);
+  return item;
+}
+
+function upsertRegistrationConsentItem_(form) {
+  const existing = managedRegistrationItem_(form, REGISTRATION_FORM_FIELDS.consent, FormApp.ItemType.CHECKBOX);
+  const item = existing ? existing.asCheckboxItem() : form.addCheckboxItem();
+  item.setTitle(REGISTRATION_FORM_FIELDS.consent)
+    .setHelpText('Cette confirmation est obligatoire pour envoyer le formulaire.')
+    .setChoiceValues([REGISTRATION_FORM_FIELDS.consentChoice])
+    .setRequired(true);
+  return item;
+}
+
+function registrationFormTitle_(tournament) {
+  return ['Inscription', String(tournament['Nom'] || '').trim(), String(tournament['Édition'] || '').trim()]
+    .filter(Boolean).join(' — ');
+}
+
+function registrationTournamentLabel_(tournament) {
+  return [String(tournament['Nom'] || '').trim(), String(tournament['Édition'] || '').trim()].filter(Boolean).join(' — ') || 'Tournoi sans nom';
+}
+
+function registrationFormDescription_(tournament, timeZone) {
+  const lines = ['Une soumission correspond à une seule équipe. Les inscriptions doivent être approuvées par l’organisation.'];
+  const startDate = toIsoDate_(tournament['Date début'], timeZone);
+  const endDate = toIsoDate_(tournament['Date fin'], timeZone);
+  const deadline = toIsoDate_(tournament['Date limite inscription'], timeZone);
+  if (startDate) lines.push('Dates du tournoi : ' + (endDate && endDate !== startDate ? startDate + ' au ' + endDate : startDate));
+  if (deadline) lines.push('Date limite d’inscription : ' + deadline);
+  const fee = formatRegistrationFee_(tournament['Frais inscription']);
+  if (fee) lines.push('Frais d’inscription : ' + fee + ' par équipe');
+  const payment = String(tournament['Instructions paiement'] || '').trim();
+  if (payment) lines.push('Paiement : ' + payment);
+  const contact = String(tournament['Courriel contact inscriptions'] || '').trim();
+  if (contact) lines.push('Questions : ' + contact);
+  lines.push('Les coordonnées fournies demeurent dans l’environnement administratif privé du tournoi.');
+  return lines.join('\n\n');
+}
+
+function registrationIsOpen_(tournament, todayIso) {
+  const deadline = toIsoDate_(tournament['Date limite inscription'], String(setting_('FUSEAU_HORAIRE', Session.getScriptTimeZone())));
+  return isActive_(tournament['Statut']) && isYes_(tournament['Inscriptions ouvertes']) && (!deadline || deadline >= todayIso);
+}
+
+function writeRegistrationFormMetadata_(row, form) {
+  const sheet = adminSpreadsheet_().getSheetByName(APP.sheets.tournaments);
+  sheet.getRange(row, headerColumn_(sheet, 'ID formulaire inscription')).setValue(form.getId());
+  sheet.getRange(row, headerColumn_(sheet, 'URL formulaire inscription')).setValue(form.getPublishedUrl());
+  sheet.getRange(row, headerColumn_(sheet, 'URL modification formulaire')).setValue(form.getEditUrl());
+  sheet.getRange(row, headerColumn_(sheet, 'Dernière mise à jour formulaire')).setValue(new Date());
+}
+
+function ensureRegistrationFormStatusTrigger_() {
+  const handler = 'synchroniserEtatFormulairesInscription';
+  const exists = ScriptApp.getProjectTriggers().some(function(trigger) {
+    return trigger.getHandlerFunction() === handler;
   });
+  if (!exists) ScriptApp.newTrigger(handler).timeBased().everyDays(1).atHour(2).create();
+}
+
+function synchroniserEtatFormulairesInscription() {
+  const timeZone = String(setting_('FUSEAU_HORAIRE', Session.getScriptTimeZone()));
+  const today = Utilities.formatDate(new Date(), timeZone, 'yyyy-MM-dd');
+  rowsAsObjects_(APP.sheets.tournaments).forEach(function(tournament) {
+    const formId = String(tournament['ID formulaire inscription'] || '').trim();
+    if (!formId) return;
+    try {
+      const form = FormApp.openById(formId);
+      form.setPublishingSummary(false);
+      form.setAcceptingResponses(registrationIsOpen_(tournament, today));
+    } catch (error) {
+      console.error('Formulaire inaccessible pour ' + registrationTournamentLabel_(tournament) + ' : ' + (error.message || String(error)));
+    }
+  });
+}
+
+function importerNouvellesInscriptions() {
+  assertAdminContext_();
+  const ui = SpreadsheetApp.getUi();
+  const tournaments = rowsAsObjects_(APP.sheets.tournaments).filter(function(tournament) {
+    return String(tournament['ID formulaire inscription'] || '').trim();
+  });
+  if (!tournaments.length) {
+    ui.alert('Aucun formulaire', 'Créez d’abord un formulaire d’inscription pour au moins un tournoi.', ui.ButtonSet.OK);
+    return;
+  }
+  const lock = LockService.getDocumentLock();
+  if (!lock.tryLock(10000)) {
+    ui.alert('Une autre opération est en cours. Réessayez dans quelques secondes.');
+    return;
+  }
+  let imported = 0;
+  const errors = [];
+  try {
+    const importedResponseIds = {};
+    rowsAsObjects_(APP.sheets.registrations).forEach(function(registration) {
+      const sourceId = String(registration['ID réponse formulaire'] || '').trim();
+      if (sourceId) importedResponseIds[sourceId] = true;
+    });
+    const divisions = rowsAsObjects_(APP.sheets.divisions);
+    tournaments.forEach(function(tournament) {
+      const formId = String(tournament['ID formulaire inscription'] || '').trim();
+      let form;
+      try {
+        form = FormApp.openById(formId);
+      } catch (error) {
+        errors.push(registrationTournamentLabel_(tournament) + ' : formulaire inaccessible.');
+        return;
+      }
+      form.getResponses().forEach(function(response) {
+        const responseId = String(response.getId() || '').trim();
+        const sourceId = formId + ':' + responseId;
+        if (!responseId) {
+          errors.push(registrationTournamentLabel_(tournament) + ' : une réponse ne possède aucun identifiant Google Forms.');
+          return;
+        }
+        if (importedResponseIds[sourceId]) return;
+        try {
+          const submitted = registrationFromGoogleFormResponse_(tournament, divisions, response);
+          writeObjectRow_(APP.sheets.registrations, {
+            'ID inscription': newId_('INS'),
+            'Horodatage': response.getTimestamp(),
+            'ID tournoi': submitted.tournamentId,
+            'Nom équipe': safeSheetText_(submitted.teamName),
+            'École': safeSheetText_(submitted.school),
+            'Adresse': safeSheetText_(submitted.address),
+            'Ville': safeSheetText_(submitted.city),
+            'Code postal': safeSheetText_(submitted.postalCode),
+            'Responsable': safeSheetText_(submitted.contactName),
+            'Téléphone': safeSheetText_(submitted.phone),
+            'Courriel': safeSheetText_(submitted.email),
+            'ID division': submitted.divisionId,
+            'Nombre équipes': 1,
+            'Statut': APP.statuses.pending,
+            'Notes internes': 'Importée depuis Google Forms.',
+            'ID soumission': newId_('SOUM'),
+            'ID réponse formulaire': sourceId
+          });
+          importedResponseIds[sourceId] = true;
+          imported += 1;
+        } catch (error) {
+          errors.push(registrationTournamentLabel_(tournament) + ' — réponse ' + responseId + ' : ' + (error.message || String(error)));
+        }
+      });
+    });
+    SpreadsheetApp.flush();
+  } finally {
+    lock.releaseLock();
+  }
+  ui.alert(
+    errors.length ? 'Importation partielle' : 'Importation terminée',
+    imported + ' nouvelle(s) inscription(s) ajoutée(s) dans INSCRIPTIONS.' +
+      (errors.length ? '\n\nÀ vérifier :\n' + errors.slice(0, 10).join('\n') : ''),
+    ui.ButtonSet.OK
+  );
+}
+
+function registrationFromGoogleFormResponse_(tournament, divisions, response) {
+  const answers = {};
+  response.getItemResponses().forEach(function(itemResponse) {
+    const value = itemResponse.getResponse();
+    answers[normalize_(itemResponse.getItem().getTitle())] = Array.isArray(value) ? value.join(', ') : String(value == null ? '' : value);
+  });
+  const answer = function(title) { return answers[normalize_(title)] || ''; };
+  const tournamentId = cleanText_(tournament['ID tournoi'], 80, true, 'ID tournoi');
+  const divisionName = cleanText_(answer(REGISTRATION_FORM_FIELDS.division), 140, true, REGISTRATION_FORM_FIELDS.division);
+  const matchingDivisions = divisions.filter(function(division) {
+    return String(division['ID tournoi'] || '').trim() === tournamentId && normalize_(division['Nom']) === normalize_(divisionName);
+  });
+  if (matchingDivisions.length !== 1) throw new Error('La catégorie sélectionnée ne correspond plus à une division unique du tournoi.');
+  if (!answer(REGISTRATION_FORM_FIELDS.consent)) throw new Error('Le consentement obligatoire est absent.');
+  return {
+    tournamentId: tournamentId,
+    teamName: cleanText_(answer(REGISTRATION_FORM_FIELDS.teamName), 140, true, REGISTRATION_FORM_FIELDS.teamName),
+    school: cleanText_(answer(REGISTRATION_FORM_FIELDS.school), 140, true, REGISTRATION_FORM_FIELDS.school),
+    address: cleanText_(answer(REGISTRATION_FORM_FIELDS.address), 180, true, REGISTRATION_FORM_FIELDS.address),
+    city: cleanText_(answer(REGISTRATION_FORM_FIELDS.city), 100, true, REGISTRATION_FORM_FIELDS.city),
+    postalCode: normalizePostalCode_(answer(REGISTRATION_FORM_FIELDS.postalCode)),
+    contactName: cleanText_(answer(REGISTRATION_FORM_FIELDS.contactName), 140, true, REGISTRATION_FORM_FIELDS.contactName),
+    phone: normalizePhone_(answer(REGISTRATION_FORM_FIELDS.phone)),
+    email: normalizeEmail_(answer(REGISTRATION_FORM_FIELDS.email)),
+    divisionId: cleanText_(matchingDivisions[0]['ID division'], 80, true, 'ID division')
+  };
 }
 
 function formatRegistrationFee_(value) {
@@ -124,57 +388,6 @@ function formatRegistrationFee_(value) {
   const number = Number(value);
   if (Number.isFinite(number)) return number.toFixed(2).replace('.', ',') + ' $';
   return String(value).trim();
-}
-
-function validateRegistrationPayload_(payload) {
-  if (payload.consent !== true) throw new Error('Vous devez confirmer l’utilisation des renseignements pour traiter l’inscription.');
-
-  const token = cleanText_(payload.token, 80, true, 'Session du formulaire');
-  const tournamentId = cleanText_(payload.tournamentId, 80, true, 'Tournoi');
-  const options = registrationOptions_();
-  const tournament = options.find(function(item) { return item.id === tournamentId; });
-  if (!tournament) throw new Error('Ce tournoi n’accepte plus les inscriptions. Rechargez la page pour obtenir les choix actuels.');
-
-  const school = cleanText_(payload.school, 140, true, 'École');
-  const address = cleanText_(payload.address, 180, true, 'Adresse');
-  const city = cleanText_(payload.city, 100, true, 'Ville');
-  const postalCode = normalizePostalCode_(payload.postalCode);
-  const contactName = cleanText_(payload.contactName, 140, true, 'Responsable');
-  const phone = normalizePhone_(payload.phone);
-  const email = cleanText_(payload.email, 160, true, 'Courriel').toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
-    throw new Error('Entrez une adresse courriel complète, par exemple nom@ecole.ca.');
-  }
-
-  const maxTeams = Math.max(1, Math.min(20, toNumber_(setting_('LIMITE_EQUIPES_PAR_SOUMISSION', 10), 10)));
-  if (!Array.isArray(payload.teams) || !payload.teams.length || payload.teams.length > maxTeams) {
-    throw new Error('Ajoutez entre 1 et ' + maxTeams + ' équipes.');
-  }
-  const allowedDivisions = {};
-  tournament.divisions.forEach(function(division) { allowedDivisions[division.id] = true; });
-  const seenTeams = {};
-  const teams = payload.teams.map(function(team, index) {
-    const name = cleanText_(team && team.name, 140, true, 'Nom de l’équipe ' + (index + 1));
-    const divisionId = cleanText_(team && team.divisionId, 80, true, 'Division de l’équipe ' + (index + 1));
-    if (!allowedDivisions[divisionId]) throw new Error('La division de l’équipe ' + (index + 1) + ' n’est plus disponible.');
-    const key = normalize_(divisionId + '|' + name);
-    if (seenTeams[key]) throw new Error('La même équipe et la même division apparaissent deux fois.');
-    seenTeams[key] = true;
-    return { name: name, divisionId: divisionId };
-  });
-
-  return {
-    token: token,
-    tournament: tournament,
-    school: school,
-    address: address,
-    city: city,
-    postalCode: postalCode,
-    contactName: contactName,
-    phone: phone,
-    email: email,
-    teams: teams
-  };
 }
 
 function normalizePostalCode_(value) {
@@ -187,12 +400,23 @@ function normalizePostalCode_(value) {
 
 function normalizePhone_(value) {
   const phone = cleanText_(value, 40, true, 'Téléphone');
-  let digits = phone.replace(/\D/g, '');
+  const extensionMatch = phone.match(/(?:poste|post\.?|ext(?:ension)?\.?|x)\s*[:.]?\s*(\d{1,8})\s*$/i);
+  const extension = extensionMatch ? extensionMatch[1] : '';
+  const basePhone = extensionMatch ? phone.slice(0, extensionMatch.index) : phone;
+  let digits = basePhone.replace(/\D/g, '');
   if (digits.length === 11 && digits.charAt(0) === '1') digits = digits.slice(1);
   if (!/^[2-9]\d{2}[2-9]\d{6}$/.test(digits)) {
     throw new Error('Entrez un numéro canadien de 10 chiffres, par exemple 514 555-1234.');
   }
-  return digits.slice(0, 3) + ' ' + digits.slice(3, 6) + '-' + digits.slice(6);
+  return digits.slice(0, 3) + ' ' + digits.slice(3, 6) + '-' + digits.slice(6) + (extension ? ' poste ' + extension : '');
+}
+
+function normalizeEmail_(value) {
+  const email = cleanText_(value, 160, true, 'Courriel').toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+    throw new Error('Entrez une adresse courriel complète, par exemple nom@ecole.ca.');
+  }
+  return email;
 }
 
 function cleanText_(value, maxLength, required, label) {
@@ -205,39 +429,6 @@ function cleanText_(value, maxLength, required, label) {
 function safeSheetText_(value) {
   const text = String(value == null ? '' : value);
   return /^[=+\-@]/.test(text) ? "'" + text : text;
-}
-
-function registrationDuplicateKey_(submission) {
-  const signature = [
-    submission.tournament.id,
-    normalize_(submission.school),
-    submission.email.toLowerCase(),
-    submission.teams.map(function(team) { return normalize_(team.divisionId + '|' + team.name); }).sort().join(',')
-  ].join('|');
-  const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, signature, Utilities.Charset.UTF_8);
-  return 'REG_DUP_' + Utilities.base64EncodeWebSafe(digest).replace(/=+$/, '');
-}
-
-function rejectRecentDuplicate_(submission) {
-  if (CacheService.getScriptCache().get(registrationDuplicateKey_(submission))) {
-    throw new Error('Une soumission identique a déjà été reçue récemment. Communiquez avec l’organisation plutôt que de la renvoyer.');
-  }
-}
-
-function registrationRateKey_() {
-  return 'REG_RATE_' + Math.floor(Date.now() / 600000);
-}
-
-function enforceRegistrationRateLimit_() {
-  const limit = Math.max(1, toNumber_(setting_('LIMITE_SOUMISSIONS_10_MIN', 20), 20));
-  const count = toNumber_(CacheService.getScriptCache().get(registrationRateKey_()), 0);
-  if (count >= limit) throw new Error('Le formulaire reçoit temporairement trop de demandes. Veuillez réessayer plus tard.');
-}
-
-function incrementRegistrationRateLimit_() {
-  const cache = CacheService.getScriptCache();
-  const key = registrationRateKey_();
-  cache.put(key, String(toNumber_(cache.get(key), 0) + 1), 900);
 }
 
 function selectedRegistrationRows_() {

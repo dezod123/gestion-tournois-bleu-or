@@ -26,7 +26,7 @@ Chaque valeur utilise un UUID généré par Google Apps Script. La probabilité 
 3. Utiliser **Générer les identifiants manquants** avant de relier ces lignes ailleurs ou de publier.
 4. Sélectionner les identifiants de référence au moyen des listes déroulantes.
 
-La génération ne remplace jamais une valeur existante. Lors de l'ajout du formulaire d'inscription, `ID inscription` sera créé au moment de l'envoi. Lors de l'approbation, une ou plusieurs équipes recevront chacune leur propre `ID équipe` et conserveront `ID inscription source` comme lien vers la demande d'origine.
+La génération ne remplace jamais une valeur existante. Pour Google Forms, `ID inscription` est créé lors de l'importation administrative de la réponse. Lors de l'approbation, l'équipe reçoit son propre `ID équipe` et conserve `ID inscription source` comme lien vers la demande d'origine.
 
 ## Durée d'un match
 

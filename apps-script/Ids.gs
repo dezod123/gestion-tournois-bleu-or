@@ -129,7 +129,12 @@ function protectSystemColumns_() {
     { sheet: APP.sheets.registrations, header: 'ID soumission' },
     { sheet: APP.sheets.registrations, header: 'Horodatage' },
     { sheet: APP.sheets.registrations, header: 'Date traitement' },
-    { sheet: APP.sheets.registrations, header: 'Compte traitement' }
+    { sheet: APP.sheets.registrations, header: 'Compte traitement' },
+    { sheet: APP.sheets.registrations, header: 'ID réponse formulaire' },
+    { sheet: APP.sheets.tournaments, header: 'ID formulaire inscription' },
+    { sheet: APP.sheets.tournaments, header: 'URL formulaire inscription' },
+    { sheet: APP.sheets.tournaments, header: 'URL modification formulaire' },
+    { sheet: APP.sheets.tournaments, header: 'Dernière mise à jour formulaire' }
   ]);
 
   protectedColumns.forEach(function(spec) {

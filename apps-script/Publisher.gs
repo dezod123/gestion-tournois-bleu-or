@@ -69,11 +69,15 @@ function buildPublicSnapshot_() {
     message: String(setting_('MESSAGE_PUBLIC', ''))
   })];
   tournaments.forEach(function(row, index) {
+    const registrationDeadline = toIsoDate_(row['Date limite inscription'], timeZone);
+    const registrationUrl = String(row['URL formulaire inscription'] || '').trim();
     rows.push(publicRow_('tournoi', row['ID tournoi'], index, { id: String(row['ID tournoi']), name: String(row['Nom']),
       edition: String(row['Édition'] || ''), startDate: toIsoDate_(row['Date début'], timeZone),
       endDate: toIsoDate_(row['Date fin'], timeZone), mainVenue: String(row['Lieu principal'] || ''),
       description: String(row['Description publique'] || ''),
-      defaultMatchDurationMinutes: toNumber_(row['Durée match par défaut (minutes)'], null) }));
+      defaultMatchDurationMinutes: toNumber_(row['Durée match par défaut (minutes)'], null),
+      registrationsOpen: isYes_(row['Inscriptions ouvertes']), registrationDeadline: registrationDeadline,
+      registrationUrl: /^https:\/\/(docs\.google\.com\/forms|forms\.gle)\//i.test(registrationUrl) ? registrationUrl : '' }));
   });
   divisions.forEach(function(row, index) {
     rows.push(publicRow_('division', row['ID division'], index, { id: String(row['ID division']),

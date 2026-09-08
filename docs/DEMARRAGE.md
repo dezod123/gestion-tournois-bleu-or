@@ -17,7 +17,7 @@ Ne placez jamais de mot de passe, jeton Google ou jeton GitHub dans ce dépôt.
 
 1. Créer une feuille Google Sheets vide, par exemple `Tournoi Bleu & Or — DEV`.
 2. Dans la feuille, ouvrir **Extensions → Apps Script**.
-3. Créer un fichier Apps Script pour chacun des fichiers `.gs` du dossier `apps-script/`, y compris `Ids.gs` et `Registration.gs`, puis y copier le contenu correspondant. Créer aussi un fichier HTML nommé `RegistrationForm` et y copier `RegistrationForm.html`.
+3. Créer un fichier Apps Script pour chacun des fichiers `.gs` du dossier `apps-script/`, y compris `Ids.gs` et `Registration.gs`, puis y copier le contenu correspondant. Aucun fichier HTML ni déploiement Web Apps Script n'est requis.
 4. Ouvrir les paramètres du projet, activer l'affichage du fichier manifeste et remplacer son contenu par `apps-script/appsscript.json`.
 5. Sélectionner la fonction `initialiserClasseur`, puis cliquer sur **Exécuter**.
 6. Autoriser le script avec le compte propriétaire de la feuille.
@@ -36,7 +36,7 @@ L'initialisation crée les onglets manquants et ajoute à droite les nouvelles c
 
 Voir [`IDENTIFIANTS_ET_HORAIRES.md`](IDENTIFIANTS_ET_HORAIRES.md) pour la configuration détaillée.
 
-Le déploiement du formulaire et son traitement administratif sont décrits dans [`INSCRIPTIONS.md`](INSCRIPTIONS.md).
+La création des Google Forms et leur traitement administratif sont décrits dans [`INSCRIPTIONS.md`](INSCRIPTIONS.md).
 
 ## Première publication
 
@@ -75,7 +75,8 @@ Le transfert ne nécessite pas de reconstruire le produit :
 1. transférer ou recopier le dépôt dans l'organisation GitHub du client;
 2. faire une copie complète du modèle Google Sheets dans le Drive du client; le projet Apps Script lié est copié avec le classeur;
 3. exécuter l'initialisation et autoriser le script avec un compte du client; le script détecte la copie et crée automatiquement un nouveau classeur public appartenant au client;
-4. publier le nouveau classeur public et modifier son URL dans `site/config.js`;
-5. retirer les accès des développeurs lorsque le client le souhaite.
+4. créer les formulaires d'inscription requis depuis les lignes `TOURNOIS`; ils appartiendront au compte du client;
+5. publier le nouveau classeur public et modifier son URL dans `site/config.js`;
+6. retirer les accès des développeurs lorsque le client le souhaite.
 
-Le formulaire doit être redéployé par le client après une modification de son code. La procédure et les protections intégrées sont décrites dans le guide des inscriptions.
+Les formulaires Google ne nécessitent aucun déploiement Web. Leur création, leur synchronisation et l'importation des réponses sont décrites dans le guide des inscriptions.

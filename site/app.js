@@ -5,7 +5,7 @@
   document.addEventListener('DOMContentLoaded', init);
 
   async function init() {
-    cacheElements(); bindEvents(); configureRegistrationLink();
+    cacheElements(); bindEvents();
     try {
       state.data = await loadData();
       if (!state.data.tournoi.length) throw new Error('Aucun tournoi public n’a été trouvé.');
@@ -24,11 +24,13 @@
     });
   }
 
-  function configureRegistrationLink() {
-    const url = String((window.TOURNAMENT_CONFIG || {}).REGISTRATION_FORM_URL || '').trim();
-    if (!url) return;
-    elements.registrationLink.href = url;
-    elements.registrationLink.hidden = false;
+  function configureRegistrationLink(tournament) {
+    const url = safeExternalUrl(tournament && tournament.registrationUrl);
+    const deadlineOpen = !tournament.registrationDeadline || new Date() <= new Date(tournament.registrationDeadline + 'T23:59:59');
+    const isOpen = Boolean(tournament.registrationsOpen && deadlineOpen && url);
+    elements.registrationLink.hidden = !isOpen;
+    if (isOpen) elements.registrationLink.href = url;
+    else elements.registrationLink.removeAttribute('href');
   }
 
   function bindEvents() {
@@ -106,6 +108,7 @@
     if (!tournament) return;
     elements.tournamentName.textContent = tournament.name;
     elements.tournamentDetails.textContent = [tournament.edition, formatDateRange(tournament.startDate, tournament.endDate), tournament.mainVenue].filter(Boolean).join(' · ');
+    configureRegistrationLink(tournament);
     elements.publicationDate.textContent = state.data.publication.publishedAt ? 'Dernière publication : ' + formatDateTime(state.data.publication.publishedAt) : 'Date de publication inconnue';
     if (state.data.publication.message) showStatus(state.data.publication.message, false); else elements.status.hidden = true;
     renderSummary(); renderMatches(); renderStandings(); renderTeams();
@@ -193,5 +196,6 @@
   function formatDateRange(start,end) { if (!start) return ''; return !end || end === start ? formatDate(start) : formatDate(start) + ' au ' + formatDate(end); }
   function formatDateTime(value) { return new Intl.DateTimeFormat('fr-CA',{ dateStyle:'long',timeStyle:'short' }).format(new Date(value)); }
   function showStatus(message,isError) { elements.status.textContent = message; elements.status.hidden = false; elements.status.classList.toggle('is-error',Boolean(isError)); }
+  function safeExternalUrl(value) { try { const url = new URL(String(value || '')); return url.protocol === 'https:' ? url.href : ''; } catch (error) { return ''; } }
   function escapeHtml(value) { return String(value == null ? '' : value).replace(/[&<>'"]/g,function (character) { return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[character]; }); }
 })();
