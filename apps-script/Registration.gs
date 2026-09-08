@@ -177,7 +177,7 @@ function configureRegistrationForm_(form, tournament, divisions) {
   upsertRegistrationTextItem_(form, REGISTRATION_FORM_FIELDS.contactName, '', null);
   upsertRegistrationTextItem_(form, REGISTRATION_FORM_FIELDS.phone, 'Exemple : 514 555-1234, poste 123',
     FormApp.createTextValidation().setHelpText('Entrez un numéro canadien de 10 chiffres. Un poste est facultatif.')
-      .requireTextMatchesPattern('(?i)^(?:\\+?1[ .-]?)?\\(?[2-9][0-9]{2}\\)?[ .-]?[2-9][0-9]{2}[ .-]?[0-9]{4}(?:[ ]*(?:poste|post\\.?|ext\\.?|x)[ ]*[0-9]{1,8})?$').build());
+      .requireTextLengthGreaterThanOrEqualTo(10).build());
   upsertRegistrationTextItem_(form, REGISTRATION_FORM_FIELDS.email, '',
     FormApp.createTextValidation().setHelpText('Entrez une adresse courriel complète, par exemple nom@ecole.ca.')
       .requireTextIsEmail().build());

@@ -133,6 +133,7 @@ function validationBuilder() {
   return {
     setHelpText() { return this; },
     requireTextMatchesPattern() { return this; },
+    requireTextLengthGreaterThanOrEqualTo() { return this; },
     requireTextIsEmail() { return this; },
     build() { return { valid: true }; }
   };
