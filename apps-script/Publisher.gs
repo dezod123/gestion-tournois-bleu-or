@@ -1,4 +1,5 @@
 function publierChangements() {
+  assertAdminContext_();
   const ui = SpreadsheetApp.getUi();
   const answer = ui.alert('Publier les changements?',
     'Cette action remplacera les données actuellement visibles sur le site public.', ui.ButtonSet.YES_NO);
@@ -163,7 +164,7 @@ function writePublicSnapshot_(rows) {
 }
 
 function appendPublicationLog_(status, message, count) {
-  const sheet = SpreadsheetApp.getActive().getSheetByName(APP.sheets.publicationLog);
+  const sheet = adminSpreadsheet_().getSheetByName(APP.sheets.publicationLog);
   if (!sheet) return;
   sheet.appendRow([new Date(), Session.getActiveUser().getEmail() || 'Compte Google autorisé', APP.version, count, status, message]);
 }

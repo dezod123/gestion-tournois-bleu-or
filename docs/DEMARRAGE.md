@@ -17,7 +17,7 @@ Ne placez jamais de mot de passe, jeton Google ou jeton GitHub dans ce dépôt.
 
 1. Créer une feuille Google Sheets vide, par exemple `Tournoi Bleu & Or — DEV`.
 2. Dans la feuille, ouvrir **Extensions → Apps Script**.
-3. Créer un fichier Apps Script pour chacun des fichiers `.gs` du dossier `apps-script/`, y compris `Ids.gs`, puis y copier le contenu correspondant.
+3. Créer un fichier Apps Script pour chacun des fichiers `.gs` du dossier `apps-script/`, y compris `Ids.gs` et `Registration.gs`, puis y copier le contenu correspondant. Créer aussi un fichier HTML nommé `Registration` et y copier `Registration.html`.
 4. Ouvrir les paramètres du projet, activer l'affichage du fichier manifeste et remplacer son contenu par `apps-script/appsscript.json`.
 5. Sélectionner la fonction `initialiserClasseur`, puis cliquer sur **Exécuter**.
 6. Autoriser le script avec le compte propriétaire de la feuille.
@@ -35,6 +35,8 @@ L'initialisation crée les onglets manquants et ajoute à droite les nouvelles c
 - Ne jamais recopier ni modifier un identifiant existant. Les listes déroulantes des colonnes de référence permettent de sélectionner le bon tournoi, la bonne division, le bon lieu ou la bonne équipe.
 
 Voir [`IDENTIFIANTS_ET_HORAIRES.md`](IDENTIFIANTS_ET_HORAIRES.md) pour la configuration détaillée.
+
+Le déploiement du formulaire et son traitement administratif sont décrits dans [`INSCRIPTIONS.md`](INSCRIPTIONS.md).
 
 ## Première publication
 
@@ -76,4 +78,4 @@ Le transfert ne nécessite pas de reconstruire le produit :
 4. publier le nouveau classeur public et modifier son URL dans `site/config.js`;
 5. retirer les accès des développeurs lorsque le client le souhaite.
 
-Les inscriptions publiques nécessiteront une étape additionnelle de déploiement du formulaire Web Apps Script et de protection antibot. Cette étape sera documentée séparément lorsqu'elle sera intégrée.
+Le formulaire doit être redéployé par le client après une modification de son code. La procédure et les protections intégrées sont décrites dans le guide des inscriptions.

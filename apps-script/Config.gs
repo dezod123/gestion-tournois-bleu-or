@@ -1,5 +1,5 @@
 const APP = Object.freeze({
-  version: '0.2.0',
+  version: '0.3.0',
   locale: 'fr-CA',
   sheets: Object.freeze({
     settings: 'PARAMETRES',
@@ -22,11 +22,11 @@ const APP = Object.freeze({
   }),
   headers: Object.freeze({
     PARAMETRES: ['Clé', 'Valeur', 'Description'],
-    TOURNOIS: ['ID tournoi', 'Nom', 'Édition', 'Statut', 'Afficher', 'Date début', 'Date fin', 'Lieu principal', 'Description publique', 'Durée match par défaut (minutes)'],
+    TOURNOIS: ['ID tournoi', 'Nom', 'Édition', 'Statut', 'Afficher', 'Date début', 'Date fin', 'Lieu principal', 'Description publique', 'Durée match par défaut (minutes)', 'Inscriptions ouvertes', 'Date limite inscription', 'Frais inscription', 'Instructions paiement', 'Courriel contact inscriptions'],
     DIVISIONS: ['ID division', 'ID tournoi', 'Nom', 'Actif', 'Afficher', 'Nombre de pools', 'Matchs entre équipes', 'Équipes qualifiées', 'Points victoire', 'Points nul', 'Points défaite', 'Ordre bris égalité', 'Durée match (minutes)'],
     LIEUX: ['ID lieu', 'ID tournoi', 'Nom', 'Adresse publique', 'Actif', 'Afficher'],
     PLAGES_HORAIRES: ['ID plage', 'ID tournoi', 'ID lieu', 'Date', 'Heure début', 'Heure fin', 'Pause début', 'Pause fin', 'Actif', 'Notes'],
-    INSCRIPTIONS: ['ID inscription', 'Horodatage', 'ID tournoi', 'Nom équipe', 'École', 'Adresse', 'Ville', 'Code postal', 'Responsable', 'Téléphone', 'Courriel', 'ID division', 'Nombre équipes', 'Statut', 'Notes internes'],
+    INSCRIPTIONS: ['ID inscription', 'Horodatage', 'ID tournoi', 'Nom équipe', 'École', 'Adresse', 'Ville', 'Code postal', 'Responsable', 'Téléphone', 'Courriel', 'ID division', 'Nombre équipes', 'Statut', 'Notes internes', 'ID soumission', 'Date traitement', 'Compte traitement'],
     EQUIPES: ['ID équipe', 'ID tournoi', 'ID division', 'Pool', 'Nom', 'École', 'Statut', 'Afficher', 'ID inscription source'],
     MATCHS: ['ID match', 'ID tournoi', 'ID division', 'Pool', 'Phase', 'Ronde', 'Date', 'Heure', 'ID lieu', 'Équipe domicile', 'Équipe visiteuse', 'Score domicile', 'Score visiteuse', 'Résultat final', 'Motif', 'Afficher'],
     PHOTOS: ['ID photo', 'ID tournoi', 'URL', 'Titre', 'ID division', 'ID équipe', 'Date', 'Afficher'],

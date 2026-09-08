@@ -20,7 +20,8 @@ function rowContainsBusinessData_(row, idColumnIndex) {
 }
 
 function genererIdentifiantsManquants() {
-  const spreadsheet = SpreadsheetApp.getActive();
+  assertAdminContext_();
+  const spreadsheet = adminSpreadsheet_();
   const lock = LockService.getDocumentLock();
   if (!lock.tryLock(10000)) {
     SpreadsheetApp.getUi().alert('Une autre opération est en cours. Réessayez dans quelques secondes.');
@@ -78,6 +79,7 @@ function genererIdentifiantsManquants() {
 }
 
 function creerNouvelleEdition() {
+  assertAdminContext_();
   const ui = SpreadsheetApp.getUi();
   const namePrompt = ui.prompt('Nouvelle édition', 'Nom public du tournoi :', ui.ButtonSet.OK_CANCEL);
   if (namePrompt.getSelectedButton() !== ui.Button.OK) return;
@@ -106,9 +108,10 @@ function creerNouvelleEdition() {
     'Édition': edition,
     'Statut': 'INACTIF',
     'Afficher': false,
-    'Durée match par défaut (minutes)': 30
+    'Durée match par défaut (minutes)': 30,
+    'Inscriptions ouvertes': false
   });
-  const spreadsheet = SpreadsheetApp.getActive();
+  const spreadsheet = adminSpreadsheet_();
   const tournamentSheet = spreadsheet.getSheetByName(APP.sheets.tournaments);
   spreadsheet.setActiveSheet(tournamentSheet);
   spreadsheet.setActiveRange(tournamentSheet.getRange(row, headerColumn_(tournamentSheet, 'Nom')));
@@ -122,7 +125,11 @@ function creerNouvelleEdition() {
 function protectSystemColumns_() {
   const spreadsheet = SpreadsheetApp.getActive();
   const protectedColumns = ID_ENTITIES.concat([
-    { sheet: APP.sheets.teams, header: 'ID inscription source' }
+    { sheet: APP.sheets.teams, header: 'ID inscription source' },
+    { sheet: APP.sheets.registrations, header: 'ID soumission' },
+    { sheet: APP.sheets.registrations, header: 'Horodatage' },
+    { sheet: APP.sheets.registrations, header: 'Date traitement' },
+    { sheet: APP.sheets.registrations, header: 'Compte traitement' }
   ]);
 
   protectedColumns.forEach(function(spec) {

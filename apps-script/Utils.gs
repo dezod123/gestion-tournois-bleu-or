@@ -6,9 +6,30 @@ function onOpen() {
     .addItem('Créer une nouvelle édition', 'creerNouvelleEdition')
     .addItem('Générer les identifiants manquants', 'genererIdentifiantsManquants')
     .addSeparator()
+    .addItem('Approuver les inscriptions sélectionnées', 'approuverInscriptionsSelectionnees')
+    .addItem('Refuser les inscriptions sélectionnées', 'refuserInscriptionsSelectionnees')
+    .addSeparator()
     .addItem('Charger les données de démonstration', 'chargerDonneesDemonstration')
     .addItem('Initialiser / réparer le classeur', 'initialiserClasseur')
     .addToUi();
+}
+
+function assertAdminContext_() {
+  if (!SpreadsheetApp.getActive()) {
+    throw new Error('Cette commande est réservée aux administrateurs qui l’exécutent depuis Google Sheets.');
+  }
+  const email = String(Session.getActiveUser().getEmail() || '').trim();
+  return email || 'Administrateur Google autorisé';
+}
+
+function adminSpreadsheet_() {
+  const active = SpreadsheetApp.getActive();
+  if (active) return active;
+  const spreadsheetId = PropertiesService.getScriptProperties().getProperty('ADMIN_SPREADSHEET_ID');
+  if (!spreadsheetId) {
+    throw new Error('Le classeur administratif n’est pas lié. Exécutez initialiserClasseur depuis Google Sheets.');
+  }
+  return SpreadsheetApp.openById(spreadsheetId);
 }
 
 function normalize_(value) {
@@ -50,7 +71,7 @@ function toTime_(value, timeZone) {
 }
 
 function rowsAsObjects_(sheetName) {
-  const sheet = SpreadsheetApp.getActive().getSheetByName(sheetName);
+  const sheet = adminSpreadsheet_().getSheetByName(sheetName);
   if (!sheet) throw new Error('Onglet manquant : ' + sheetName);
   const values = sheet.getDataRange().getValues();
   if (values.length < 2) return [];
@@ -97,7 +118,7 @@ function firstAvailableDataRow_(sheet) {
 }
 
 function writeObjectRow_(sheetName, valuesByHeader, rowNumber) {
-  const sheet = SpreadsheetApp.getActive().getSheetByName(sheetName);
+  const sheet = adminSpreadsheet_().getSheetByName(sheetName);
   if (!sheet) throw new Error('Onglet manquant : ' + sheetName);
   const headers = sheetHeaders_(sheet);
   const row = rowNumber || firstAvailableDataRow_(sheet);
@@ -119,7 +140,7 @@ function setting_(key, fallback) {
 }
 
 function upsertSetting_(key, value, description) {
-  const sheet = SpreadsheetApp.getActive().getSheetByName(APP.sheets.settings);
+  const sheet = adminSpreadsheet_().getSheetByName(APP.sheets.settings);
   const values = sheet.getDataRange().getValues();
   for (let row = 1; row < values.length; row += 1) {
     if (normalize_(values[row][0]) === normalize_(key)) {

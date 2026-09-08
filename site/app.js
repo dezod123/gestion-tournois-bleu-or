@@ -5,7 +5,7 @@
   document.addEventListener('DOMContentLoaded', init);
 
   async function init() {
-    cacheElements(); bindEvents();
+    cacheElements(); bindEvents(); configureRegistrationLink();
     try {
       state.data = await loadData();
       if (!state.data.tournoi.length) throw new Error('Aucun tournoi public n’a été trouvé.');
@@ -18,10 +18,17 @@
   }
 
   function cacheElements() {
-    ['tournament-name','tournament-details','publication-date','status','tournament-filter','division-filter','team-filter',
+    ['tournament-name','tournament-details','publication-date','registration-link','status','tournament-filter','division-filter','team-filter',
       'match-status-filter','summary-cards','upcoming-matches','matches','standings-content','teams-content'].forEach(function (id) {
       elements[toCamel(id)] = document.getElementById(id);
     });
+  }
+
+  function configureRegistrationLink() {
+    const url = String((window.TOURNAMENT_CONFIG || {}).REGISTRATION_FORM_URL || '').trim();
+    if (!url) return;
+    elements.registrationLink.href = url;
+    elements.registrationLink.hidden = false;
   }
 
   function bindEvents() {

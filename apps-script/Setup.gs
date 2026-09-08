@@ -1,5 +1,8 @@
 function initialiserClasseur() {
+  assertAdminContext_();
   const spreadsheet = SpreadsheetApp.getActive();
+  if (!spreadsheet) throw new Error('Exécutez cette fonction depuis le classeur Google Sheets administratif.');
+  PropertiesService.getScriptProperties().setProperty('ADMIN_SPREADSHEET_ID', spreadsheet.getId());
   Object.keys(APP.headers).filter(function(sheetName) {
     return sheetName !== APP.sheets.publicData;
   }).forEach(function(sheetName) {
@@ -50,28 +53,32 @@ function ensureSheetSchema_(spreadsheet, sheetName, requiredHeaders) {
 function seedSettings_() {
   const defaults = [
     ['VERSION_SCHEMA', '1', 'Version du contrat de données publiques'],
-    ['VERSION_STRUCTURE_ADMIN', '2', 'Version de la structure du classeur administratif'],
+    ['VERSION_STRUCTURE_ADMIN', '3', 'Version de la structure du classeur administratif'],
     ['LANGUE', 'fr-CA', 'Langue principale du site'],
     ['FUSEAU_HORAIRE', 'America/Toronto', 'Fuseau utilisé pour les dates de publication'],
     ['DERNIERE_PUBLICATION', '', 'Mise à jour automatiquement'],
     ['ID_CLASSEUR_ADMIN_LIE', '', 'Permet de détecter automatiquement une copie du gabarit'],
     ['ID_CLASSEUR_PUBLIC', '', 'Identifiant du classeur ne contenant que les données publiques'],
     ['URL_CLASSEUR_PUBLIC', '', 'Lien pratique vers le classeur public'],
-    ['MESSAGE_PUBLIC', '', 'Message facultatif affiché sur le site']
+    ['MESSAGE_PUBLIC', '', 'Message facultatif affiché sur le site'],
+    ['LIMITE_EQUIPES_PAR_SOUMISSION', '10', 'Protection du formulaire public'],
+    ['LIMITE_SOUMISSIONS_10_MIN', '20', 'Protection globale contre les soumissions automatisées'],
+    ['DELAI_MIN_FORMULAIRE_SECONDES', '3', 'Temps minimal avant de pouvoir soumettre le formulaire']
   ];
   const current = rowsAsObjects_(APP.sheets.settings).map(function(row) { return normalize_(row['Clé']); });
-  const sheet = SpreadsheetApp.getActive().getSheetByName(APP.sheets.settings);
+  const sheet = adminSpreadsheet_().getSheetByName(APP.sheets.settings);
   defaults.forEach(function(row) {
     if (current.indexOf(normalize_(row[0])) < 0) sheet.appendRow(row);
   });
-  upsertSetting_('VERSION_STRUCTURE_ADMIN', '2', 'Version de la structure du classeur administratif');
+  upsertSetting_('VERSION_STRUCTURE_ADMIN', '3', 'Version de la structure du classeur administratif');
 }
 
 function applyValidations_() {
-  const spreadsheet = SpreadsheetApp.getActive();
+  const spreadsheet = adminSpreadsheet_();
   const checkboxValidation = SpreadsheetApp.newDataValidation().requireCheckbox().build();
   [
-    [APP.sheets.tournaments, 'Afficher'], [APP.sheets.divisions, 'Actif'], [APP.sheets.divisions, 'Afficher'],
+    [APP.sheets.tournaments, 'Afficher'], [APP.sheets.tournaments, 'Inscriptions ouvertes'],
+    [APP.sheets.divisions, 'Actif'], [APP.sheets.divisions, 'Afficher'],
     [APP.sheets.venues, 'Actif'], [APP.sheets.venues, 'Afficher'], [APP.sheets.availability, 'Actif'],
     [APP.sheets.teams, 'Afficher'], [APP.sheets.matches, 'Résultat final'],
     [APP.sheets.matches, 'Afficher'], [APP.sheets.photos, 'Afficher']
@@ -103,7 +110,7 @@ function applyValidationToColumn_(sheet, header, validation) {
 }
 
 function applyReferenceValidations_() {
-  const spreadsheet = SpreadsheetApp.getActive();
+  const spreadsheet = adminSpreadsheet_();
   const references = [
     [APP.sheets.divisions, 'ID tournoi', APP.sheets.tournaments, 'ID tournoi'],
     [APP.sheets.venues, 'ID tournoi', APP.sheets.tournaments, 'ID tournoi'],
@@ -137,16 +144,24 @@ function applyReferenceValidations_() {
 }
 
 function applyFormats_() {
-  const spreadsheet = SpreadsheetApp.getActive();
+  const spreadsheet = adminSpreadsheet_();
   [
     [APP.sheets.tournaments, 'Date début'],
     [APP.sheets.tournaments, 'Date fin'],
+    [APP.sheets.tournaments, 'Date limite inscription'],
     [APP.sheets.availability, 'Date'],
     [APP.sheets.matches, 'Date'],
     [APP.sheets.photos, 'Date']
   ].forEach(function(spec) {
     const sheet = spreadsheet.getSheetByName(spec[0]);
     sheet.getRange(2, headerColumn_(sheet, spec[1]), Math.max(sheet.getMaxRows() - 1, 1), 1).setNumberFormat('yyyy-mm-dd');
+  });
+  [
+    [APP.sheets.registrations, 'Horodatage'],
+    [APP.sheets.registrations, 'Date traitement']
+  ].forEach(function(spec) {
+    const sheet = spreadsheet.getSheetByName(spec[0]);
+    sheet.getRange(2, headerColumn_(sheet, spec[1]), Math.max(sheet.getMaxRows() - 1, 1), 1).setNumberFormat('yyyy-mm-dd hh:mm');
   });
   [
     [APP.sheets.availability, 'Heure début'],
@@ -161,7 +176,7 @@ function applyFormats_() {
 }
 
 function ensurePublicSpreadsheet_() {
-  const adminSpreadsheetId = SpreadsheetApp.getActive().getId();
+  const adminSpreadsheetId = adminSpreadsheet_().getId();
   const linkedAdminId = String(setting_('ID_CLASSEUR_ADMIN_LIE', '')).trim();
   const existingId = String(setting_('ID_CLASSEUR_PUBLIC', '')).trim();
   if (existingId && linkedAdminId === adminSpreadsheetId) {
@@ -171,7 +186,7 @@ function ensurePublicSpreadsheet_() {
       // Le fichier a été déplacé ou supprimé : une nouvelle sortie publique sera créée ci-dessous.
     }
   }
-  const adminSpreadsheet = SpreadsheetApp.getActive();
+  const adminSpreadsheet = adminSpreadsheet_();
   const publicSpreadsheet = SpreadsheetApp.create(adminSpreadsheet.getName() + ' — DONNÉES PUBLIQUES');
   const sheet = publicSpreadsheet.getSheets()[0];
   sheet.setName(APP.sheets.publicData);
@@ -190,6 +205,7 @@ function stylePublicSheet_(publicSpreadsheet) {
 }
 
 function chargerDonneesDemonstration() {
+  assertAdminContext_();
   const ui = SpreadsheetApp.getUi();
   const sheetNames = [
     APP.sheets.tournaments, APP.sheets.divisions, APP.sheets.venues,
@@ -210,7 +226,10 @@ function chargerDonneesDemonstration() {
     'Statut': 'ACTIF', 'Afficher': true, 'Date début': new Date(2026, 10, 6),
     'Date fin': new Date(2026, 10, 8), 'Lieu principal': 'École secondaire',
     'Description publique': 'Données fictives pour valider le fonctionnement.',
-    'Durée match par défaut (minutes)': 30
+    'Durée match par défaut (minutes)': 30, 'Inscriptions ouvertes': true,
+    'Date limite inscription': new Date(2026, 9, 15), 'Frais inscription': 150,
+    'Instructions paiement': 'Paiement à confirmer avec l’organisation.',
+    'Courriel contact inscriptions': 'tournoi@example.com'
   }, 2);
   writeObjectRow_(APP.sheets.divisions, {
     'ID division': 'D-DEMO', 'ID tournoi': 'T-DEMO', 'Nom': 'Benjamin masculin',
@@ -254,6 +273,7 @@ function chargerDonneesDemonstration() {
 }
 
 function reparerPositionDonneesDemonstration() {
+  assertAdminContext_();
   const spreadsheet = SpreadsheetApp.getActive();
   const moves = [
     [APP.sheets.tournaments, 'T-DEMO', 2],

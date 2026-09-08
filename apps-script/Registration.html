@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="fr-CA">
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <style>
+      :root {
+        --navy: #0d2a4a; --blue: #165d9c; --gold: #e0ad2f; --ink: #172230;
+        --muted: #647282; --line: #d9e1e8; --background: #f3f6f9; --surface: #fff;
+        --danger: #a12626; --success: #18794e; --radius: 14px;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-width: 320px; color: var(--ink); background: var(--background); font-family: Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; line-height: 1.5; }
+      header { color: white; background: linear-gradient(115deg,var(--navy),var(--blue)); border-bottom: 5px solid var(--gold); }
+      .hero,.shell { width: min(820px,calc(100% - 32px)); margin: 0 auto; }
+      .hero { padding: 38px 0 32px; }
+      .eyebrow { margin: 0 0 5px; color: var(--gold); font-size: .76rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+      h1 { margin: 0 0 8px; font-size: clamp(2rem,7vw,3rem); line-height: 1.08; }
+      h2,h3,p { margin-top: 0; }
+      .hero p:last-child { margin-bottom: 0; opacity: .88; }
+      .shell { padding: 26px 0 56px; }
+      form,.empty-state,.success-state { padding: clamp(20px,4vw,34px); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 8px 30px rgba(13,42,74,.09); }
+      section + section { margin-top: 32px; padding-top: 28px; border-top: 1px solid var(--line); }
+      h2 { margin-bottom: 5px; color: var(--navy); font-size: 1.35rem; }
+      .section-help,.privacy,.counter { color: var(--muted); font-size: .88rem; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 17px; margin-top: 19px; }
+      .full { grid-column: 1 / -1; }
+      label,legend { display: block; color: var(--navy); font-size: .86rem; font-weight: 750; }
+      input,select,textarea,button { font: inherit; }
+      input,select,textarea { display: block; width: 100%; margin-top: 6px; padding: 11px 12px; color: var(--ink); background: white; border: 1px solid #b8c5d1; border-radius: 9px; }
+      input,select { min-height: 46px; }
+      textarea { min-height: 92px; resize: vertical; }
+      input:focus,select:focus,textarea:focus,button:focus-visible { outline: 3px solid rgba(224,173,47,.55); outline-offset: 2px; border-color: var(--blue); }
+      .required::after { content: " *"; color: var(--danger); }
+      .info { margin: 18px 0 0; padding: 16px; color: var(--navy); background: #eef5fb; border-left: 4px solid var(--blue); border-radius: 8px; }
+      .info dl { display: grid; grid-template-columns: max-content 1fr; gap: 5px 14px; margin: 0; }
+      .info dt { font-weight: 800; } .info dd { margin: 0; white-space: pre-line; }
+      fieldset.team { position: relative; margin: 16px 0 0; padding: 18px; border: 1px solid var(--line); border-radius: 11px; }
+      fieldset.team legend { padding: 0 7px; }
+      .team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+      .remove-team { position: absolute; top: -13px; right: 10px; padding: 4px 9px; color: var(--danger); background: white; border: 1px solid #e5b4b4; border-radius: 999px; cursor: pointer; font-size: .78rem; font-weight: 700; }
+      .team-actions { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 15px; }
+      button { min-height: 44px; padding: 10px 17px; border-radius: 9px; cursor: pointer; font-weight: 800; }
+      .secondary { color: var(--navy); background: white; border: 1px solid var(--navy); }
+      .primary { color: white; background: var(--navy); border: 1px solid var(--navy); }
+      button:disabled { cursor: not-allowed; opacity: .55; }
+      .consent { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; margin-top: 20px; color: var(--ink); font-weight: 500; }
+      .consent input { width: 20px; min-height: 20px; margin: 2px 0 0; }
+      .form-actions { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 24px; }
+      .status { margin: 18px 0 0; padding: 12px 14px; border-radius: 9px; }
+      .status.error { color: #7d1818; background: #fff0f0; border: 1px solid #e7abab; }
+      .status.success { color: #125e3d; background: #e9f7f0; border: 1px solid #a9d7c1; }
+      .success-state h2 { color: var(--success); }
+      .references { padding: 12px 16px; background: #f7f9fb; border-radius: 8px; font-family: ui-monospace,SFMono-Regular,Consolas,monospace; font-size: .8rem; overflow-wrap: anywhere; }
+      .honeypot { position: absolute!important; left: -10000px!important; width: 1px!important; height: 1px!important; overflow: hidden!important; }
+      footer { padding: 0 16px 30px; color: var(--muted); text-align: center; font-size: .8rem; }
+      [hidden] { display: none!important; }
+      @media (max-width:620px) {
+        .hero,.shell { width: min(100% - 20px,820px); }
+        .grid,.team-grid { grid-template-columns: 1fr; }
+        .full { grid-column: auto; }
+        .form-actions,.team-actions { align-items: stretch; flex-direction: column; }
+        .form-actions button,.team-actions button { width: 100%; }
+        .info dl { grid-template-columns: 1fr; gap: 2px; } .info dd + dt { margin-top: 8px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="hero">
+        <p class="eyebrow">Tournoi Bleu & Or</p>
+        <h1>Inscription des équipes</h1>
+        <p>Remplissez une seule fois les coordonnées de l’école, puis ajoutez chaque équipe à faire approuver.</p>
+      </div>
+    </header>
+
+    <main class="shell">
+      <div id="closed" class="empty-state" hidden>
+        <h2>Inscriptions fermées</h2>
+        <p>Aucun tournoi n’accepte actuellement de nouvelles inscriptions. Communiquez avec l’organisation si vous pensez qu’il s’agit d’une erreur.</p>
+      </div>
+
+      <form id="registration-form" novalidate>
+        <section>
+          <h2>Tournoi</h2>
+          <p class="section-help">Les choix proviennent directement de la configuration de l’organisation.</p>
+          <div class="grid">
+            <label class="full"><span class="required">Tournoi et édition</span>
+              <select id="tournament" required></select>
+            </label>
+          </div>
+          <div id="tournament-info" class="info" hidden></div>
+        </section>
+
+        <section>
+          <h2>École et responsable</h2>
+          <p class="section-help">Ces renseignements demeurent dans le classeur administratif privé.</p>
+          <div class="grid">
+            <label class="full"><span class="required">École</span><input id="school" autocomplete="organization" maxlength="140" required></label>
+            <label class="full"><span class="required">Adresse de l’école</span><input id="address" autocomplete="street-address" maxlength="180" required></label>
+            <label><span class="required">Ville</span><input id="city" autocomplete="address-level2" maxlength="100" required></label>
+            <label><span class="required">Code postal</span><input id="postal-code" autocomplete="postal-code" maxlength="16" required></label>
+            <label class="full"><span class="required">Nom du responsable</span><input id="contact-name" autocomplete="name" maxlength="140" required></label>
+            <label><span class="required">Téléphone</span><input id="phone" type="tel" autocomplete="tel" maxlength="40" required></label>
+            <label><span class="required">Courriel</span><input id="email" type="email" autocomplete="email" maxlength="160" required></label>
+          </div>
+        </section>
+
+        <section>
+          <h2>Équipes à inscrire</h2>
+          <p class="section-help">Chaque équipe créera une inscription distincte afin que l’organisation puisse l’approuver ou la refuser séparément.</p>
+          <div id="teams"></div>
+          <div class="team-actions">
+            <button id="add-team" class="secondary" type="button">+ Ajouter une équipe</button>
+            <span id="team-counter" class="counter"></span>
+          </div>
+        </section>
+
+        <section>
+          <h2>Confirmation</h2>
+          <p class="privacy">Les renseignements seront utilisés par l’organisation pour analyser l’inscription et communiquer avec le responsable. Ils ne sont pas ajoutés aux données publiques du tournoi.</p>
+          <label class="consent"><input id="consent" type="checkbox" required><span>Je confirme que les renseignements sont exacts et j’accepte qu’ils soient utilisés pour traiter cette inscription.</span></label>
+          <label class="honeypot" aria-hidden="true">Site Web<input id="website" tabindex="-1" autocomplete="off"></label>
+          <div class="form-actions">
+            <span class="counter">* Champs obligatoires</span>
+            <button id="submit" class="primary" type="submit">Envoyer l’inscription</button>
+          </div>
+          <div id="status" class="status" role="alert" aria-live="polite" hidden></div>
+        </section>
+      </form>
+
+      <div id="success" class="success-state" hidden>
+        <h2>Inscription reçue</h2>
+        <p id="success-message"></p>
+        <p>Conservez les références suivantes :</p>
+        <div id="references" class="references"></div>
+        <p style="margin-top:20px"><button class="secondary" type="button" onclick="location.reload()">Faire une autre inscription</button></p>
+      </div>
+    </main>
+    <footer>Formulaire administré par l’organisation du Tournoi Bleu & Or.</footer>
+
+    <script>
+      'use strict';
+      const BOOTSTRAP = <?!= bootstrapJson ?>;
+      const form = document.getElementById('registration-form');
+      const tournamentSelect = document.getElementById('tournament');
+      const teamsContainer = document.getElementById('teams');
+      const addTeamButton = document.getElementById('add-team');
+      const submitButton = document.getElementById('submit');
+      let teamSequence = 0;
+
+      init();
+
+      function init() {
+        if (!BOOTSTRAP.tournaments.length) {
+          form.hidden = true;
+          document.getElementById('closed').hidden = false;
+          return;
+        }
+        BOOTSTRAP.tournaments.forEach(function(tournament) {
+          tournamentSelect.add(new Option([tournament.name,tournament.edition].filter(Boolean).join(' — '),tournament.id));
+        });
+        tournamentSelect.addEventListener('change', handleTournamentChange);
+        addTeamButton.addEventListener('click', addTeam);
+        form.addEventListener('submit', submitRegistration);
+        addTeam();
+        renderTournamentInfo();
+      }
+
+      function currentTournament() {
+        return BOOTSTRAP.tournaments.find(function(item) { return item.id === tournamentSelect.value; });
+      }
+
+      function handleTournamentChange() {
+        teamsContainer.querySelectorAll('.division-select').forEach(fillDivisionSelect);
+        renderTournamentInfo();
+      }
+
+      function renderTournamentInfo() {
+        const tournament = currentTournament();
+        const info = document.getElementById('tournament-info');
+        const rows = [];
+        if (tournament.startDate) rows.push(['Dates',formatDateRange(tournament.startDate,tournament.endDate)]);
+        if (tournament.deadline) rows.push(['Date limite',formatDate(tournament.deadline)]);
+        if (tournament.fee) rows.push(['Frais',tournament.fee]);
+        if (tournament.paymentInstructions) rows.push(['Paiement',tournament.paymentInstructions]);
+        if (tournament.contactEmail) rows.push(['Contact',tournament.contactEmail]);
+        info.replaceChildren();
+        if (!rows.length) { info.hidden = true; return; }
+        const list = document.createElement('dl');
+        rows.forEach(function(row) {
+          const term = document.createElement('dt'); term.textContent = row[0];
+          const detail = document.createElement('dd'); detail.textContent = row[1];
+          list.append(term,detail);
+        });
+        info.appendChild(list); info.hidden = false;
+      }
+
+      function addTeam() {
+        if (teamsContainer.children.length >= BOOTSTRAP.maxTeams) return;
+        teamSequence += 1;
+        const fieldset = document.createElement('fieldset');
+        fieldset.className = 'team'; fieldset.dataset.sequence = teamSequence;
+        const legend = document.createElement('legend');
+        const grid = document.createElement('div'); grid.className = 'team-grid';
+        const nameLabel = document.createElement('label'); nameLabel.innerHTML = '<span class="required">Nom de l’équipe</span>';
+        const nameInput = document.createElement('input'); nameInput.className = 'team-name'; nameInput.maxLength = 140; nameInput.required = true;
+        nameLabel.appendChild(nameInput);
+        const divisionLabel = document.createElement('label'); divisionLabel.innerHTML = '<span class="required">Division</span>';
+        const divisionSelect = document.createElement('select'); divisionSelect.className = 'division-select'; divisionSelect.required = true;
+        divisionLabel.appendChild(divisionSelect); grid.append(nameLabel,divisionLabel); fieldset.append(legend,grid);
+        teamsContainer.appendChild(fieldset); fillDivisionSelect(divisionSelect); refreshTeamLabels(); nameInput.focus();
+      }
+
+      function fillDivisionSelect(select) {
+        const previous = select.value; select.replaceChildren();
+        currentTournament().divisions.forEach(function(division) { select.add(new Option(division.name,division.id)); });
+        if (Array.from(select.options).some(function(option) { return option.value === previous; })) select.value = previous;
+      }
+
+      function refreshTeamLabels() {
+        const teams = Array.from(teamsContainer.children);
+        teams.forEach(function(fieldset,index) {
+          fieldset.querySelector('legend').textContent = 'Équipe ' + (index + 1);
+          let remove = fieldset.querySelector('.remove-team');
+          if (teams.length > 1 && !remove) {
+            remove = document.createElement('button'); remove.type = 'button'; remove.className = 'remove-team'; remove.textContent = 'Retirer';
+            remove.addEventListener('click', function() { fieldset.remove(); refreshTeamLabels(); }); fieldset.appendChild(remove);
+          } else if (teams.length === 1 && remove) remove.remove();
+        });
+        document.getElementById('team-counter').textContent = teams.length + ' / ' + BOOTSTRAP.maxTeams + ' équipe(s)';
+        addTeamButton.disabled = teams.length >= BOOTSTRAP.maxTeams;
+      }
+
+      function submitRegistration(event) {
+        event.preventDefault(); setStatus('',false);
+        if (!form.reportValidity()) return;
+        submitButton.disabled = true; submitButton.textContent = 'Envoi en cours…';
+        const payload = {
+          token: BOOTSTRAP.token,
+          tournamentId: tournamentSelect.value,
+          school: value('school'), address: value('address'), city: value('city'), postalCode: value('postal-code'),
+          contactName: value('contact-name'), phone: value('phone'), email: value('email'), website: value('website'),
+          consent: document.getElementById('consent').checked,
+          teams: Array.from(teamsContainer.querySelectorAll('.team')).map(function(team) {
+            return { name: team.querySelector('.team-name').value, divisionId: team.querySelector('.division-select').value };
+          })
+        };
+        google.script.run.withSuccessHandler(handleSuccess).withFailureHandler(handleFailure).soumettreInscription(payload);
+      }
+
+      function handleSuccess(result) {
+        form.hidden = true; document.getElementById('success').hidden = false;
+        document.getElementById('success-message').textContent = result.message;
+        document.getElementById('references').textContent = result.registrationIds.join('\n');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      function handleFailure(error) {
+        submitButton.disabled = false; submitButton.textContent = 'Envoyer l’inscription';
+        setStatus(String(error && error.message || error || 'Une erreur est survenue.').replace(/^Exception:\s*/,''),true);
+      }
+
+      function setStatus(message,isError) {
+        const status = document.getElementById('status'); status.textContent = message; status.hidden = !message;
+        status.className = 'status ' + (isError ? 'error' : 'success');
+      }
+      function value(id) { return document.getElementById(id).value.trim(); }
+      function formatDate(value) { return new Intl.DateTimeFormat('fr-CA',{ dateStyle:'long' }).format(new Date(value + 'T12:00:00')); }
+      function formatDateRange(start,end) { return !end || end === start ? formatDate(start) : formatDate(start) + ' au ' + formatDate(end); }
+    </script>
+  </body>
+</html>

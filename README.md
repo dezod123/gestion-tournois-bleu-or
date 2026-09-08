@@ -35,4 +35,6 @@ La saisie et les corrections dans Google Sheets ne déclenchent aucun script. Un
 
 Le menu Google Sheets permet aussi de créer une édition et de générer automatiquement tous les identifiants techniques. La durée des matchs et les disponibilités des lieux sont configurables; voir [`docs/IDENTIFIANTS_ET_HORAIRES.md`](docs/IDENTIFIANTS_ET_HORAIRES.md).
 
+Le formulaire d'inscription Apps Script, ses protections et le flux d'approbation sont décrits dans [`docs/INSCRIPTIONS.md`](docs/INSCRIPTIONS.md).
+
 Pendant le développement, le site fonctionne avec les données d'exemple incluses et peut être lancé avec n'importe quel serveur HTTP statique.

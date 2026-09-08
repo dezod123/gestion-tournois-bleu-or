@@ -50,6 +50,12 @@ Les types V1 sont `meta`, `tournoi`, `division`, `lieu`, `equipe`, `match`, `cla
 
 Si une erreur bloquante existe, l'instantané précédent demeure intact.
 
+## Inscriptions
+
+Le formulaire public est rendu par Apps Script et écrit uniquement dans INSCRIPTIONS. Il reçoit seulement la configuration nécessaire : éditions ouvertes, divisions actives, dates, frais et instructions publiques. Les coordonnées personnelles ne quittent pas le classeur privé.
+
+Chaque équipe demandée possède sa propre ligne et son propre statut. L'approbation administrative crée une équipe officielle liée à son inscription source; elle n'est jamais déclenchée automatiquement par la soumission publique.
+
 ## Identifiants et planification
 
 Les identifiants techniques sont produits par Apps Script et ne doivent pas être saisis ni modifiés par les administrateurs. La commande **Tournoi → Générer les identifiants manquants** complète les lignes déjà saisies sans remplacer un identifiant existant. Les futures inscriptions, approbations et générations d'horaire appelleront le même générateur directement.
