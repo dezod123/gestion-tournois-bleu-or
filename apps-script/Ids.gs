@@ -135,9 +135,20 @@ function protectSystemColumns_() {
     { sheet: APP.sheets.tournaments, header: 'URL formulaire inscription' },
     { sheet: APP.sheets.tournaments, header: 'URL modification formulaire' },
     { sheet: APP.sheets.tournaments, header: 'Dernière mise à jour formulaire' },
-    { sheet: APP.sheets.matches, header: 'Nom équipe domicile' },
-    { sheet: APP.sheets.matches, header: 'Nom équipe visiteuse' }
+    { sheet: APP.sheets.matches, header: 'ID équipe domicile' },
+    { sheet: APP.sheets.matches, header: 'ID équipe visiteuse' }
   ]);
+
+  const desiredDescriptions = {};
+  protectedColumns.forEach(function(spec) {
+    desiredDescriptions['SYSTEME:' + spec.sheet + ':' + spec.header] = true;
+  });
+  spreadsheet.getSheets().forEach(function(sheet) {
+    sheet.getProtections(SpreadsheetApp.ProtectionType.RANGE).forEach(function(protection) {
+      const description = String(protection.getDescription() || '');
+      if (description.indexOf('SYSTEME:') === 0 && !desiredDescriptions[description] && protection.canEdit()) protection.remove();
+    });
+  });
 
   protectedColumns.forEach(function(spec) {
     const sheet = spreadsheet.getSheetByName(spec.sheet);

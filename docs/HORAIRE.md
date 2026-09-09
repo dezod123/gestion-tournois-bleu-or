@@ -47,7 +47,9 @@ Créer une ligne par date et par lieu. Deux lieux peuvent être disponibles au m
 
 La commande peut être relancée après l’approbation de nouvelles équipes. Elle calcule alors uniquement les confrontations manquantes.
 
-`MATCHS` conserve les identifiants comme références officielles et affiche automatiquement `Nom équipe domicile` et `Nom équipe visiteuse` juste à côté. Si un administrateur change manuellement un ID ou renomme une équipe, il peut choisir **Tournoi → Actualiser les noms d’équipes dans MATCHS**. La publication effectue aussi cette actualisation automatiquement.
+Pour créer ou modifier un match manuellement, l’administrateur choisit `Équipe domicile` et `Équipe visiteuse` dans les listes déroulantes de noms. Les colonnes voisines `ID équipe domicile` et `ID équipe visiteuse` conservent les identifiants officiels et sont gérées par le système. La commande **Tournoi → Synchroniser les équipes dans MATCHS** résout les noms immédiatement; la publication effectue aussi cette synchronisation automatiquement.
+
+Le tournoi et la division doivent être choisis avant les noms. Le système vérifie le tournoi, la division et le pool afin d’éviter une association avec une équipe homonyme d’un autre contexte. Deux équipes portant exactement le même nom dans le même contexte doivent être renommées de façon distincte.
 
 ## Règles de placement
 

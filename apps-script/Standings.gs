@@ -13,8 +13,8 @@ function calculateStandings_(division, teams, matches) {
   matches.filter(function(match) {
     return String(match['ID division']) === divisionId && normalize_(match['Phase'] || 'POOL') === 'POOL' && isYes_(match['Résultat final']);
   }).forEach(function(match) {
-    const home = standings[String(match['Équipe domicile'])];
-    const away = standings[String(match['Équipe visiteuse'])];
+    const home = standings[String(match['ID équipe domicile'])];
+    const away = standings[String(match['ID équipe visiteuse'])];
     const homeScore = toNumber_(match['Score domicile'], null);
     const awayScore = toNumber_(match['Score visiteuse'], null);
     if (!home || !away || homeScore === null || awayScore === null) return;

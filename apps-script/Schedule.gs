@@ -258,8 +258,8 @@ function scheduleExistingPairCounts_(matches, assignedTeamsById) {
   matches.forEach(function(match) {
     const phase = normalize_(match['Phase']);
     if (phase && phase !== 'POOL') return;
-    const homeId = String(match['Équipe domicile'] || '').trim();
-    const awayId = String(match['Équipe visiteuse'] || '').trim();
+    const homeId = String(match['ID équipe domicile'] || '').trim();
+    const awayId = String(match['ID équipe visiteuse'] || '').trim();
     const home = assignedTeamsById[homeId];
     const away = assignedTeamsById[awayId];
     if (!home || !away || home.pool !== away.pool) return;
@@ -326,8 +326,8 @@ function scheduleExistingOccupancy_(matches, divisions, defaultDuration, timeZon
   return matches.map(function(match) {
     const date = toIsoDate_(match['Date'], timeZone);
     const venueId = String(match['ID lieu'] || '').trim();
-    const homeId = String(match['Équipe domicile'] || '').trim();
-    const awayId = String(match['Équipe visiteuse'] || '').trim();
+    const homeId = String(match['ID équipe domicile'] || '').trim();
+    const awayId = String(match['ID équipe visiteuse'] || '').trim();
     if (!date || !match['Heure'] || !venueId || !homeId || !awayId) return null;
     const start = scheduleTimeToMinutes_(match['Heure'], timeZone, 'Heure du match ' + String(match['ID match'] || ''));
     const duration = durations[String(match['ID division'] || '').trim()] || defaultDuration;
@@ -481,10 +481,10 @@ function applySchedulePlan_(plan) {
       'Date': scheduleDateValue_(match.date),
       'Heure': scheduleTimeValue_(match.start),
       'ID lieu': match.venueId,
-      'Équipe domicile': match.homeTeamId,
-      'Nom équipe domicile': match.homeTeamName,
-      'Équipe visiteuse': match.awayTeamId,
-      'Nom équipe visiteuse': match.awayTeamName,
+      'ID équipe domicile': match.homeTeamId,
+      'Équipe domicile': match.homeTeamName,
+      'ID équipe visiteuse': match.awayTeamId,
+      'Équipe visiteuse': match.awayTeamName,
       'Score domicile': '',
       'Score visiteuse': '',
       'Résultat final': false,

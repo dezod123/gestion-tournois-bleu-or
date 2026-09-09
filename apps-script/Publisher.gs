@@ -11,7 +11,8 @@ function publierChangements() {
     return;
   }
   try {
-    refreshMatchTeamNames_(adminSpreadsheet_());
+    synchroniserSelectionsEquipesMatchs_(adminSpreadsheet_());
+    SpreadsheetApp.flush();
     const snapshot = buildPublicSnapshot_();
     if (snapshot.errors.length) {
       appendPublicationLog_('ERREUR', snapshot.errors.join(' | '), 0);
@@ -99,7 +100,7 @@ function buildPublicSnapshot_() {
     rows.push(publicRow_('match', row['ID match'], index, { id: String(row['ID match']), tournamentId: String(row['ID tournoi']),
       divisionId: String(row['ID division']), pool: String(row['Pool'] || ''), phase: String(row['Phase'] || 'POOL'),
       round: String(row['Ronde'] || ''), date: toIsoDate_(row['Date'], timeZone), time: toTime_(row['Heure'], timeZone),
-      venueId: String(row['ID lieu'] || ''), homeTeamId: String(row['Équipe domicile']), awayTeamId: String(row['Équipe visiteuse']),
+      venueId: String(row['ID lieu'] || ''), homeTeamId: String(row['ID équipe domicile']), awayTeamId: String(row['ID équipe visiteuse']),
       homeScore: finalResult ? toNumber_(row['Score domicile'], null) : null,
       awayScore: finalResult ? toNumber_(row['Score visiteuse'], null) : null,
       final: finalResult, reason: finalResult ? String(row['Motif'] || '') : '' }));
@@ -125,8 +126,8 @@ function validatePublicData_(tournaments, divisions, teams, matches, teamIds) {
   validateUniqueIds_(matches, 'ID match', APP.sheets.matches, errors);
   matches.forEach(function(match) {
     const label = APP.sheets.matches + ' ligne ' + match.__row;
-    const home = String(match['Équipe domicile'] || '');
-    const away = String(match['Équipe visiteuse'] || '');
+    const home = String(match['ID équipe domicile'] || '');
+    const away = String(match['ID équipe visiteuse'] || '');
     if (!teamIds.has(home)) errors.push(label + ' : équipe domicile inconnue (' + home + ').');
     if (!teamIds.has(away)) errors.push(label + ' : équipe visiteuse inconnue (' + away + ').');
     if (home && home === away) errors.push(label + ' : une équipe ne peut pas jouer contre elle-même.');

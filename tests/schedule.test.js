@@ -96,9 +96,9 @@ const demoRows = {
     'Heure fin': '21:30', 'Pause début': '', 'Pause fin': '', Actif: true
   }],
   MATCHS: [
-    { 'ID match': 'M01', 'ID tournoi': 'T-DEMO', 'ID division': 'D-DEMO', Pool: 'A', Phase: 'POOL', Date: '2026-11-06', Heure: '17:00', 'ID lieu': 'GYM-1', 'Équipe domicile': 'E01', 'Équipe visiteuse': 'E02' },
-    { 'ID match': 'M02', 'ID tournoi': 'T-DEMO', 'ID division': 'D-DEMO', Pool: 'A', Phase: 'POOL', Date: '2026-11-07', Heure: '09:00', 'ID lieu': 'GYM-1', 'Équipe domicile': 'E02', 'Équipe visiteuse': 'E03' },
-    { 'ID match': 'M03', 'ID tournoi': 'T-DEMO', 'ID division': 'D-DEMO', Pool: 'A', Phase: 'POOL', Date: '2026-11-07', Heure: '11:00', 'ID lieu': 'GYM-1', 'Équipe domicile': 'E03', 'Équipe visiteuse': 'E01' }
+    { 'ID match': 'M01', 'ID tournoi': 'T-DEMO', 'ID division': 'D-DEMO', Pool: 'A', Phase: 'POOL', Date: '2026-11-06', Heure: '17:00', 'ID lieu': 'GYM-1', 'ID équipe domicile': 'E01', 'ID équipe visiteuse': 'E02' },
+    { 'ID match': 'M02', 'ID tournoi': 'T-DEMO', 'ID division': 'D-DEMO', Pool: 'A', Phase: 'POOL', Date: '2026-11-07', Heure: '09:00', 'ID lieu': 'GYM-1', 'ID équipe domicile': 'E02', 'ID équipe visiteuse': 'E03' },
+    { 'ID match': 'M03', 'ID tournoi': 'T-DEMO', 'ID division': 'D-DEMO', Pool: 'A', Phase: 'POOL', Date: '2026-11-07', Heure: '11:00', 'ID lieu': 'GYM-1', 'ID équipe domicile': 'E03', 'ID équipe visiteuse': 'E01' }
   ]
 };
 context.Session = { getScriptTimeZone: () => 'America/Toronto' };

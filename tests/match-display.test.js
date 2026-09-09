@@ -11,21 +11,53 @@ vm.createContext(context);
 });
 
 const matchHeaders = Array.from(vm.runInContext('APP.headers.MATCHS', context));
-assert.equal(matchHeaders.indexOf('Nom équipe domicile'), matchHeaders.indexOf('Équipe domicile') + 1);
-assert.equal(matchHeaders.indexOf('Nom équipe visiteuse'), matchHeaders.indexOf('Équipe visiteuse') + 1);
+assert.equal(matchHeaders.indexOf('Équipe domicile'), matchHeaders.indexOf('ID équipe domicile') + 1);
+assert.equal(matchHeaders.indexOf('Équipe visiteuse'), matchHeaders.indexOf('ID équipe visiteuse') + 1);
 
-const index = context.buildMatchTeamNameIndex_([
-  { 'ID équipe': 'E01', Nom: 'Les Aigles' },
-  { 'ID équipe': 'E02', Nom: 'Les Lynx' }
+const lookup = context.buildMatchTeamLookup_([
+  { 'ID équipe': 'E01', 'ID tournoi': 'T1', 'ID division': 'D1', Pool: 'A', Nom: 'Les Aigles' },
+  { 'ID équipe': 'E02', 'ID tournoi': 'T1', 'ID division': 'D1', Pool: 'A', Nom: 'Les Lynx' },
+  { 'ID équipe': 'E03', 'ID tournoi': 'T2', 'ID division': 'D2', Pool: 'A', Nom: 'Les Aigles' }
 ]);
-assert.equal(context.matchTeamNameForId_('E01', index), 'Les Aigles');
-assert.equal(context.matchTeamNameForId_('', index), '');
-assert.equal(context.matchTeamNameForId_('E99', index), '⚠ ID inconnu');
-const duplicateIndex = context.buildMatchTeamNameIndex_([
-  { 'ID équipe': 'E01', Nom: 'Premier nom' },
-  { 'ID équipe': 'E01', Nom: 'Deuxième nom' }
+const matchContext = { tournamentId: 'T1', divisionId: 'D1', pool: 'A' };
+assert.equal(context.matchTeamNameForId_('E01', lookup.byId), 'Les Aigles');
+assert.equal(context.matchTeamNameForId_('', lookup.byId), '');
+assert.equal(context.matchTeamNameForId_('E99', lookup.byId), '⚠ ID inconnu');
+assert.deepEqual(
+  JSON.parse(JSON.stringify(context.resolveMatchTeamSelection_(matchContext, '', 'Les Aigles', lookup))),
+  { id: 'E01', name: 'Les Aigles' }
+);
+assert.deepEqual(
+  JSON.parse(JSON.stringify(context.resolveMatchTeamSelection_(matchContext, 'E01', 'Les Lynx', lookup))),
+  { id: 'E02', name: 'Les Lynx' }
+);
+assert.deepEqual(
+  JSON.parse(JSON.stringify(context.resolveMatchTeamSelection_(matchContext, 'E01', 'Ancien nom', lookup))),
+  { id: 'E01', name: 'Les Aigles' }
+);
+assert.deepEqual(
+  JSON.parse(JSON.stringify(context.resolveMatchTeamSelection_(matchContext, 'E01', '', lookup))),
+  { id: '', name: '' }
+);
+assert.throws(
+  () => context.resolveMatchTeamSelection_({ tournamentId: 'T1', divisionId: 'D9', pool: '' }, '', 'Les Aigles', lookup),
+  /aucune équipe/
+);
+assert.throws(
+  () => context.resolveMatchTeamSelection_(matchContext, 'E01', 'Les Aigles', context.buildMatchTeamLookup_([
+    { 'ID équipe': 'E01', 'ID tournoi': 'T1', 'ID division': 'D1', Pool: 'A', Nom: 'Équipe renommée' },
+    { 'ID équipe': 'E03', 'ID tournoi': 'T2', 'ID division': 'D2', Pool: 'A', Nom: 'Les Aigles' }
+  ])),
+  /aucune équipe/
+);
+const duplicateLookup = context.buildMatchTeamLookup_([
+  { 'ID équipe': 'E10', 'ID tournoi': 'T1', 'ID division': 'D1', Pool: 'A', Nom: 'Même nom' },
+  { 'ID équipe': 'E11', 'ID tournoi': 'T1', 'ID division': 'D1', Pool: 'A', Nom: 'Même nom' }
 ]);
-assert.equal(context.matchTeamNameForId_('E01', duplicateIndex), '⚠ ID en double');
+assert.throws(
+  () => context.resolveMatchTeamSelection_(matchContext, '', 'Même nom', duplicateLookup),
+  /plusieurs équipes/
+);
 
 class FakeHeaderSheet {
   constructor(headers) { this.headers = headers.slice(); }
@@ -49,12 +81,20 @@ const originalHeaders = [
 ];
 const fakeSheet = new FakeHeaderSheet(originalHeaders);
 context.ensureMatchTeamNameColumns_({ getSheetByName: () => fakeSheet });
-assert.equal(fakeSheet.headers.indexOf('Nom équipe domicile'), fakeSheet.headers.indexOf('Équipe domicile') + 1);
-assert.equal(fakeSheet.headers.indexOf('Nom équipe visiteuse'), fakeSheet.headers.indexOf('Équipe visiteuse') + 1);
+assert.equal(fakeSheet.headers.indexOf('Équipe domicile'), fakeSheet.headers.indexOf('ID équipe domicile') + 1);
+assert.equal(fakeSheet.headers.indexOf('Équipe visiteuse'), fakeSheet.headers.indexOf('ID équipe visiteuse') + 1);
 assert.equal(fakeSheet.headers.indexOf('Score domicile'), originalHeaders.indexOf('Score domicile') + 2);
 
-const displaySource = fs.readFileSync(path.join(root, 'apps-script', 'MatchDisplay.gs'), 'utf8');
-assert.match(displaySource, /homeNameRange\.clearDataValidations\(\)\.setValues/);
-assert.match(displaySource, /awayNameRange\.clearDataValidations\(\)\.setValues/);
+const previousVersionHeaders = [
+  'ID match', 'ID tournoi', 'ID division', 'Pool', 'Phase', 'Ronde', 'Date', 'Heure', 'ID lieu',
+  'Équipe domicile', 'Nom équipe domicile', 'Équipe visiteuse', 'Nom équipe visiteuse',
+  'Score domicile', 'Score visiteuse', 'Résultat final', 'Motif', 'Afficher'
+];
+const migratedSheet = new FakeHeaderSheet(previousVersionHeaders);
+context.ensureMatchTeamNameColumns_({ getSheetByName: () => migratedSheet });
+assert.equal(migratedSheet.headers.length, previousVersionHeaders.length);
+assert.deepEqual(migratedSheet.headers.slice(9, 13), [
+  'ID équipe domicile', 'Équipe domicile', 'ID équipe visiteuse', 'Équipe visiteuse'
+]);
 
 console.log('Match display tests passed.');

@@ -14,8 +14,9 @@ function initialiserClasseur() {
   const publicSpreadsheet = ensurePublicSpreadsheet_();
   applyValidations_();
   applyFormats_();
-  refreshMatchTeamNames_(spreadsheet);
+  refreshMatchTeamNamesFromIds_(spreadsheet);
   protectSystemColumns_();
+  styleMatchTeamNameColumns_(spreadsheet);
   stylePublicSheet_(publicSpreadsheet);
   onOpen();
   spreadsheet.toast(
@@ -56,7 +57,7 @@ function ensureSheetSchema_(spreadsheet, sheetName, requiredHeaders) {
 function seedSettings_() {
   const defaults = [
     ['VERSION_SCHEMA', '1', 'Version du contrat de données publiques'],
-    ['VERSION_STRUCTURE_ADMIN', '5', 'Version de la structure du classeur administratif'],
+    ['VERSION_STRUCTURE_ADMIN', '6', 'Version de la structure du classeur administratif'],
     ['LANGUE', 'fr-CA', 'Langue principale du site'],
     ['FUSEAU_HORAIRE', 'America/Toronto', 'Fuseau utilisé pour les dates de publication'],
     ['DERNIERE_PUBLICATION', '', 'Mise à jour automatiquement'],
@@ -70,7 +71,7 @@ function seedSettings_() {
   defaults.forEach(function(row) {
     if (current.indexOf(normalize_(row[0])) < 0) sheet.appendRow(row);
   });
-  upsertSetting_('VERSION_STRUCTURE_ADMIN', '5', 'Version de la structure du classeur administratif');
+  upsertSetting_('VERSION_STRUCTURE_ADMIN', '6', 'Version de la structure du classeur administratif');
 }
 
 function resetRegistrationFormsForCopiedWorkbook_(spreadsheet) {
@@ -134,8 +135,10 @@ function applyReferenceValidations_() {
     [APP.sheets.matches, 'ID tournoi', APP.sheets.tournaments, 'ID tournoi'],
     [APP.sheets.matches, 'ID division', APP.sheets.divisions, 'ID division'],
     [APP.sheets.matches, 'ID lieu', APP.sheets.venues, 'ID lieu'],
-    [APP.sheets.matches, 'Équipe domicile', APP.sheets.teams, 'ID équipe'],
-    [APP.sheets.matches, 'Équipe visiteuse', APP.sheets.teams, 'ID équipe'],
+    [APP.sheets.matches, 'ID équipe domicile', APP.sheets.teams, 'ID équipe'],
+    [APP.sheets.matches, 'Équipe domicile', APP.sheets.teams, 'Nom', true],
+    [APP.sheets.matches, 'ID équipe visiteuse', APP.sheets.teams, 'ID équipe'],
+    [APP.sheets.matches, 'Équipe visiteuse', APP.sheets.teams, 'Nom', true],
     [APP.sheets.photos, 'ID tournoi', APP.sheets.tournaments, 'ID tournoi'],
     [APP.sheets.photos, 'ID division', APP.sheets.divisions, 'ID division'],
     [APP.sheets.photos, 'ID équipe', APP.sheets.teams, 'ID équipe']
@@ -148,7 +151,7 @@ function applyReferenceValidations_() {
     const sourceRange = sourceSheet.getRange(2, sourceColumn, Math.max(sourceSheet.getMaxRows() - 1, 1), 1);
     const validation = SpreadsheetApp.newDataValidation()
       .requireValueInRange(sourceRange, true)
-      .setAllowInvalid(false)
+      .setAllowInvalid(spec[4] === true)
       .build();
     applyValidationToColumn_(targetSheet, spec[1], validation);
   });
@@ -277,7 +280,7 @@ function chargerDonneesDemonstration() {
     writeObjectRow_(APP.sheets.matches, {
       'ID match': match[0], 'ID tournoi': 'T-DEMO', 'ID division': 'D-DEMO',
       'Pool': 'A', 'Phase': 'POOL', 'Ronde': match[1], 'Date': match[2], 'Heure': match[3],
-      'ID lieu': 'GYM-1', 'Équipe domicile': match[4], 'Équipe visiteuse': match[5],
+      'ID lieu': 'GYM-1', 'ID équipe domicile': match[4], 'ID équipe visiteuse': match[5],
       'Score domicile': match[6], 'Score visiteuse': match[7], 'Résultat final': match[8], 'Afficher': true
     }, index + 2);
   });
