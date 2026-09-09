@@ -50,6 +50,10 @@ La création des Google Forms et leur traitement administratif sont décrits dan
 
 Voir [`HORAIRE.md`](HORAIRE.md) pour les règles de placement et les limites actuelles.
 
+## Publier des photos
+
+Les administrateurs ajoutent dans `PHOTOS` le lien HTTPS d’une image rendue publique, un titre et, facultativement, une division, une équipe et une date. Après avoir coché `Afficher`, générer l’identifiant manquant et publier les changements. Le guide complet se trouve dans [`PHOTOS.md`](PHOTOS.md).
+
 ## Première publication
 
 1. Remplir au minimum `TOURNOIS`, `DIVISIONS`, `EQUIPES` et `MATCHS`.

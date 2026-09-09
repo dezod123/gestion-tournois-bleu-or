@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  const state = { data: null, tournamentId: '', divisionId: 'all', teamId: 'all', matchStatus: 'all' };
+  const state = { data: null, tournamentId: '', divisionId: 'all', teamId: 'all', matchStatus: 'all', photoLimit: 12 };
   const playoffPhaseOrder = ['ÉLIMINATOIRE', 'QUART-DE-FINALE', 'DEMI-FINALE', 'FINALE'];
   const elements = {};
   if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', init);
@@ -20,7 +20,8 @@
 
   function cacheElements() {
     ['tournament-name','tournament-details','publication-date','registration-link','status','tournament-filter','division-filter','team-filter',
-      'match-status-filter','summary-cards','upcoming-matches','matches','champions-content','playoffs-content','standings-content','teams-content'].forEach(function (id) {
+      'match-status-filter','summary-cards','upcoming-matches','matches','champions-content','playoffs-content','standings-content','teams-content',
+      'photos-content','photos-load-more','photo-dialog','photo-dialog-close','photo-dialog-image','photo-dialog-title','photo-dialog-details'].forEach(function (id) {
       elements[toCamel(id)] = document.getElementById(id);
     });
   }
@@ -36,13 +37,19 @@
 
   function bindEvents() {
     elements.tournamentFilter.addEventListener('change', function (event) {
-      state.tournamentId = event.target.value; state.divisionId = 'all'; state.teamId = 'all'; populateFilters(); render();
+      state.tournamentId = event.target.value; state.divisionId = 'all'; state.teamId = 'all'; resetPhotoLimit(); populateFilters(); render();
     });
     elements.divisionFilter.addEventListener('change', function (event) {
-      state.divisionId = event.target.value; state.teamId = 'all'; populateTeamFilter(); render();
+      state.divisionId = event.target.value; state.teamId = 'all'; resetPhotoLimit(); populateTeamFilter(); render();
     });
-    elements.teamFilter.addEventListener('change', function (event) { state.teamId = event.target.value; render(); });
+    elements.teamFilter.addEventListener('change', function (event) { state.teamId = event.target.value; resetPhotoLimit(); render(); });
     elements.matchStatusFilter.addEventListener('change', function (event) { state.matchStatus = event.target.value; renderMatches(); });
+    elements.photosLoadMore.addEventListener('click', function () { state.photoLimit += 12; renderPhotos(); });
+    elements.photoDialogClose.addEventListener('click', closePhotoDialog);
+    elements.photoDialog.addEventListener('close', clearPhotoDialog);
+    elements.photoDialog.addEventListener('click', function (event) {
+      if (event.target === elements.photoDialog) closePhotoDialog();
+    });
     document.querySelectorAll('.tab').forEach(function (button) {
       button.addEventListener('click', function () {
         document.querySelectorAll('.tab').forEach(function (tab) { tab.classList.remove('is-active'); });
@@ -112,7 +119,7 @@
     configureRegistrationLink(tournament);
     elements.publicationDate.textContent = state.data.publication.publishedAt ? 'Dernière publication : ' + formatDateTime(state.data.publication.publishedAt) : 'Date de publication inconnue';
     if (state.data.publication.message) showStatus(state.data.publication.message, false); else elements.status.hidden = true;
-    renderSummary(); renderMatches(); renderPlayoffs(); renderStandings(); renderTeams();
+    renderSummary(); renderMatches(); renderPlayoffs(); renderStandings(); renderTeams(); renderPhotos();
   }
 
   function filteredTeams() {
@@ -254,6 +261,100 @@
     }).join('') || empty('Aucune équipe dans cette sélection.');
   }
 
+  function resetPhotoLimit() { state.photoLimit = 12; }
+
+  function filteredPhotos() {
+    return state.data.photo.filter(function (photo) {
+      if (photo.tournamentId !== state.tournamentId) return false;
+      if (state.divisionId !== 'all' && photo.divisionId && photo.divisionId !== state.divisionId) return false;
+      if (state.teamId !== 'all' && photo.teamId && photo.teamId !== state.teamId) return false;
+      return true;
+    }).sort(comparePhotos);
+  }
+
+  function renderPhotos() {
+    const divisionIndex = Object.fromEntries(state.data.division.map(function (division) { return [division.id, division]; }));
+    const teamIndex = Object.fromEntries(state.data.equipe.map(function (team) { return [team.id, team]; }));
+    const photos = filteredPhotos();
+    const visiblePhotos = photos.slice(0, state.photoLimit);
+    const cards = visiblePhotos.map(function (photo, index) {
+      const urls = photoUrls(photo.url);
+      if (!urls.imageUrl) return '';
+      const title = String(photo.title || 'Photo du tournoi');
+      const details = [photo.date ? formatDate(photo.date) : '',
+        photo.divisionId && divisionIndex[photo.divisionId] ? divisionIndex[photo.divisionId].name : '',
+        photo.teamId && teamIndex[photo.teamId] ? teamIndex[photo.teamId].name : ''].filter(Boolean).join(' · ');
+      return '<article class="photo-card"><button class="photo-card__button" type="button" data-photo-index="' + index + '" aria-label="Agrandir : ' +
+        escapeHtml(title) + '"><img src="' + escapeHtml(urls.imageUrl) + '" alt="' + escapeHtml(title) + '" loading="lazy" decoding="async" referrerpolicy="no-referrer"></button>' +
+        '<div class="photo-card__caption"><strong>' + escapeHtml(title) + '</strong>' + (details ? '<span>' + escapeHtml(details) + '</span>' : '') + '</div></article>';
+    }).filter(Boolean);
+    elements.photosContent.innerHTML = cards.join('') || empty('Aucune photo n’est encore publiée dans cette sélection.');
+    const remaining = Math.max(photos.length - state.photoLimit, 0);
+    elements.photosLoadMore.hidden = remaining === 0;
+    elements.photosLoadMore.textContent = 'Voir plus de photos (' + Math.min(12, remaining) + ')';
+    elements.photosContent.querySelectorAll('[data-photo-index]').forEach(function (button) {
+      button.addEventListener('click', function () { openPhotoDialog(visiblePhotos[Number(button.dataset.photoIndex)], divisionIndex, teamIndex); });
+      const photoImage = button.querySelector('img');
+      photoImage.addEventListener('error', function () {
+        button.disabled = true;
+        button.innerHTML = '<span class="photo-card__unavailable">Photo indisponible</span>';
+      });
+    });
+  }
+
+  function openPhotoDialog(photo, divisionIndex, teamIndex) {
+    if (!photo) return;
+    const urls = photoUrls(photo.url);
+    if (!urls.imageUrl) return;
+    const title = String(photo.title || 'Photo du tournoi');
+    const details = [photo.date ? formatDate(photo.date) : '',
+      photo.divisionId && divisionIndex[photo.divisionId] ? divisionIndex[photo.divisionId].name : '',
+      photo.teamId && teamIndex[photo.teamId] ? teamIndex[photo.teamId].name : ''].filter(Boolean).join(' · ');
+    elements.photoDialogImage.src = urls.imageUrl;
+    elements.photoDialogImage.alt = title;
+    elements.photoDialogTitle.textContent = title;
+    elements.photoDialogDetails.textContent = details;
+    if (typeof elements.photoDialog.showModal === 'function') elements.photoDialog.showModal();
+  }
+
+  function closePhotoDialog() {
+    if (elements.photoDialog.open) elements.photoDialog.close();
+    else clearPhotoDialog();
+  }
+
+  function clearPhotoDialog() {
+    elements.photoDialogImage.removeAttribute('src');
+  }
+
+  function photoUrls(value) {
+    const safeUrl = safeExternalUrl(value);
+    if (!safeUrl) return { imageUrl: '', sourceUrl: '' };
+    const driveId = googleDriveFileId(safeUrl);
+    try {
+      const host = new URL(safeUrl).hostname;
+      if ((host === 'drive.google.com' || host === 'docs.google.com') && !driveId) return { imageUrl: '', sourceUrl: '' };
+    } catch (error) { return { imageUrl: '', sourceUrl: '' }; }
+    if (!driveId) return { imageUrl: safeUrl, sourceUrl: safeUrl };
+    return {
+      imageUrl: 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(driveId) + '&sz=w1600',
+      sourceUrl: 'https://drive.google.com/file/d/' + encodeURIComponent(driveId) + '/view'
+    };
+  }
+
+  function googleDriveFileId(value) {
+    try {
+      const url = new URL(String(value || ''));
+      if (url.hostname !== 'drive.google.com' && url.hostname !== 'docs.google.com') return '';
+      const pathMatch = url.pathname.match(/\/d\/([A-Za-z0-9_-]{10,})/);
+      const candidate = pathMatch ? pathMatch[1] : url.searchParams.get('id');
+      return /^[A-Za-z0-9_-]{10,}$/.test(String(candidate || '')) ? String(candidate) : '';
+    } catch (error) { return ''; }
+  }
+
+  function comparePhotos(a, b) {
+    return String(b.date || '').localeCompare(String(a.date || '')) || String(a.id || '').localeCompare(String(b.id || ''));
+  }
+
   function compareMatches(a,b) { return (a.date + a.time + a.id).localeCompare(b.date + b.time + b.id); }
   function unique(values) { return values.filter(function (value,index) { return values.indexOf(value) === index; }); }
   function signed(value) { return value > 0 ? '+' + value : String(value); }
@@ -266,6 +367,7 @@
   function safeExternalUrl(value) { try { const url = new URL(String(value || '')); return url.protocol === 'https:' ? url.href : ''; } catch (error) { return ''; } }
   function escapeHtml(value) { return String(value == null ? '' : value).replace(/[&<>'"]/g,function (character) { return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[character]; }); }
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { normalizePhase: normalizePhase, isPlayoffMatch: isPlayoffMatch, playoffPhaseLabel: playoffPhaseLabel, championTeamId: championTeamId };
+    module.exports = { normalizePhase: normalizePhase, isPlayoffMatch: isPlayoffMatch, playoffPhaseLabel: playoffPhaseLabel,
+      championTeamId: championTeamId, photoUrls: photoUrls, googleDriveFileId: googleDriveFileId, comparePhotos: comparePhotos };
   }
 })();

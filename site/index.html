@@ -32,6 +32,7 @@
         <button class="tab" type="button" data-tab="playoffs">Séries</button>
         <button class="tab" type="button" data-tab="standings">Classements</button>
         <button class="tab" type="button" data-tab="teams">Équipes</button>
+        <button class="tab" type="button" data-tab="photos">Photos</button>
       </nav>
       <section id="overview" class="panel is-active" aria-labelledby="overview-title">
         <h2 id="overview-title">Aperçu</h2>
@@ -61,7 +62,25 @@
       <section id="teams" class="panel" aria-labelledby="teams-title">
         <h2 id="teams-title">Équipes et pools</h2><div id="teams-content" class="team-grid"></div>
       </section>
+      <section id="photos" class="panel" aria-labelledby="photos-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="photos-title">Photos</h2>
+            <p class="section-intro">Moments publiés par l’organisation du tournoi.</p>
+          </div>
+        </div>
+        <div id="photos-content" class="photo-grid"></div>
+        <p class="load-more-wrap"><button id="photos-load-more" class="secondary-button" type="button" hidden>Voir plus de photos</button></p>
+      </section>
     </main>
+    <dialog id="photo-dialog" class="photo-dialog" aria-labelledby="photo-dialog-title">
+      <button id="photo-dialog-close" class="photo-dialog__close" type="button" aria-label="Fermer">×</button>
+      <img id="photo-dialog-image" alt="">
+      <div class="photo-dialog__caption">
+        <strong id="photo-dialog-title"></strong>
+        <span id="photo-dialog-details"></span>
+      </div>
+    </dialog>
     <footer><p>Données publiées par l'organisation du tournoi.</p></footer>
     <noscript>JavaScript doit être activé pour consulter les données du tournoi.</noscript>
   </body>

@@ -61,7 +61,7 @@ function buildPublicSnapshot_() {
   const photos = rowsAsObjects_(APP.sheets.photos).filter(function(row) {
     return tournamentIds.has(String(row['ID tournoi'])) && isYes_(row['Afficher']);
   });
-  const errors = validatePublicData_(tournaments, divisions, teams, matches, teamIds);
+  const errors = validatePublicData_(tournaments, divisions, teams, matches, photos, divisionIds, teamIds);
   if (errors.length) return { errors: errors, rows: [] };
 
   const publishedAt = Utilities.formatDate(new Date(), timeZone, "yyyy-MM-dd'T'HH:mm:ssXXX");
@@ -120,12 +120,13 @@ function buildPublicSnapshot_() {
   return { errors: [], rows: rows };
 }
 
-function validatePublicData_(tournaments, divisions, teams, matches, teamIds) {
+function validatePublicData_(tournaments, divisions, teams, matches, photos, divisionIds, teamIds) {
   const errors = [];
   validateUniqueIds_(tournaments, 'ID tournoi', APP.sheets.tournaments, errors);
   validateUniqueIds_(divisions, 'ID division', APP.sheets.divisions, errors);
   validateUniqueIds_(teams, 'ID équipe', APP.sheets.teams, errors);
   validateUniqueIds_(matches, 'ID match', APP.sheets.matches, errors);
+  validateUniqueIds_(photos, 'ID photo', APP.sheets.photos, errors);
   matches.forEach(function(match) {
     const label = APP.sheets.matches + ' ligne ' + match.__row;
     const home = String(match['ID équipe domicile'] || '');
@@ -140,6 +141,15 @@ function validatePublicData_(tournaments, divisions, teams, matches, teamIds) {
         errors.push(label + ' : un résultat final exige deux scores positifs ou nuls.');
       }
     }
+  });
+  photos.forEach(function(photo) {
+    const label = APP.sheets.photos + ' ligne ' + photo.__row;
+    const url = String(photo['URL'] || '').trim();
+    const divisionId = String(photo['ID division'] || '').trim();
+    const teamId = String(photo['ID équipe'] || '').trim();
+    if (!/^https:\/\/\S+$/i.test(url)) errors.push(label + ' : une URL HTTPS est obligatoire.');
+    if (divisionId && !divisionIds.has(divisionId)) errors.push(label + ' : division publique inconnue (' + divisionId + ').');
+    if (teamId && !teamIds.has(teamId)) errors.push(label + ' : équipe publique inconnue (' + teamId + ').');
   });
   return errors;
 }

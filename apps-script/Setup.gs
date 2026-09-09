@@ -137,6 +137,9 @@ function applyValidations_() {
   applyValidationToColumn_(spreadsheet.getSheetByName(APP.sheets.tournaments), 'Durée match par défaut (minutes)', positiveNumber);
   applyValidationToColumn_(spreadsheet.getSheetByName(APP.sheets.divisions), 'Durée match (minutes)', positiveNumber);
 
+  const webUrl = SpreadsheetApp.newDataValidation().requireTextIsUrl().setAllowInvalid(false).build();
+  applyValidationToColumn_(spreadsheet.getSheetByName(APP.sheets.photos), 'URL', webUrl);
+
   applyDateAndTimeValidations_(spreadsheet);
   applyReferenceValidations_();
   applyAdminReferenceDisplayValidations_(spreadsheet);
