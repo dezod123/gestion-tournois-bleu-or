@@ -49,6 +49,17 @@ Actif : coché
 
 Créer une ligne distincte par combinaison de date et de lieu. Les pauses sont facultatives. Plusieurs lieux peuvent être disponibles en parallèle.
 
+## Sélecteurs de dates et d'heures
+
+L'initialisation applique les mêmes aides de saisie dans tous les onglets administratifs concernés :
+
+- un calendrier dans `TOURNOIS` pour les dates de début, de fin et de limite d'inscription;
+- un calendrier et des listes d'heures dans `PLAGES_HORAIRES`;
+- un calendrier et une liste d'heures dans `MATCHS`;
+- un calendrier dans `PHOTOS` pour la date de la photo.
+
+Les listes proposent des heures par tranches de 15 minutes. Une heure différente peut tout de même être saisie au format `HH:mm`, ce qui permet au générateur d'utiliser des durées de match qui ne sont pas des multiples de 15 minutes. Les horodatages d'importation, de traitement et de publication sont produits automatiquement et ne reçoivent donc pas de sélecteur manuel.
+
 Le générateur combine les équipes approuvées, le nombre de confrontations configuré dans `DIVISIONS`, les durées et les plages actives. Il crée les lignes `MATCHS` avec leurs identifiants, dates, heures et lieux. Les administrateurs peuvent ensuite déplacer ou corriger ces matchs dans la feuille avant de choisir **Publier les changements**.
 
 La procédure complète et les limites de cette première version sont décrites dans [`HORAIRE.md`](HORAIRE.md).

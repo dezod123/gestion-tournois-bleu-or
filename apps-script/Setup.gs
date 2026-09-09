@@ -26,6 +26,23 @@ function initialiserClasseur() {
   );
 }
 
+const ADMIN_DATE_INPUT_COLUMNS = Object.freeze([
+  Object.freeze([APP.sheets.tournaments, 'Date début']),
+  Object.freeze([APP.sheets.tournaments, 'Date fin']),
+  Object.freeze([APP.sheets.tournaments, 'Date limite inscription']),
+  Object.freeze([APP.sheets.availability, 'Date']),
+  Object.freeze([APP.sheets.matches, 'Date']),
+  Object.freeze([APP.sheets.photos, 'Date'])
+]);
+
+const ADMIN_TIME_INPUT_COLUMNS = Object.freeze([
+  Object.freeze([APP.sheets.availability, 'Heure début']),
+  Object.freeze([APP.sheets.availability, 'Heure fin']),
+  Object.freeze([APP.sheets.availability, 'Pause début']),
+  Object.freeze([APP.sheets.availability, 'Pause fin']),
+  Object.freeze([APP.sheets.matches, 'Heure'])
+]);
+
 function ensureSheetSchema_(spreadsheet, sheetName, requiredHeaders) {
   let sheet = spreadsheet.getSheetByName(sheetName);
   if (!sheet) sheet = spreadsheet.insertSheet(sheetName);
@@ -57,7 +74,7 @@ function ensureSheetSchema_(spreadsheet, sheetName, requiredHeaders) {
 function seedSettings_() {
   const defaults = [
     ['VERSION_SCHEMA', '1', 'Version du contrat de données publiques'],
-    ['VERSION_STRUCTURE_ADMIN', '6', 'Version de la structure du classeur administratif'],
+    ['VERSION_STRUCTURE_ADMIN', '7', 'Version de la structure du classeur administratif'],
     ['LANGUE', 'fr-CA', 'Langue principale du site'],
     ['FUSEAU_HORAIRE', 'America/Toronto', 'Fuseau utilisé pour les dates de publication'],
     ['DERNIERE_PUBLICATION', '', 'Mise à jour automatiquement'],
@@ -71,7 +88,7 @@ function seedSettings_() {
   defaults.forEach(function(row) {
     if (current.indexOf(normalize_(row[0])) < 0) sheet.appendRow(row);
   });
-  upsertSetting_('VERSION_STRUCTURE_ADMIN', '6', 'Version de la structure du classeur administratif');
+  upsertSetting_('VERSION_STRUCTURE_ADMIN', '7', 'Version de la structure du classeur administratif');
 }
 
 function resetRegistrationFormsForCopiedWorkbook_(spreadsheet) {
@@ -113,7 +130,45 @@ function applyValidations_() {
   applyValidationToColumn_(spreadsheet.getSheetByName(APP.sheets.tournaments), 'Durée match par défaut (minutes)', positiveNumber);
   applyValidationToColumn_(spreadsheet.getSheetByName(APP.sheets.divisions), 'Durée match (minutes)', positiveNumber);
 
+  applyDateAndTimeValidations_(spreadsheet);
   applyReferenceValidations_();
+}
+
+function applyDateAndTimeValidations_(spreadsheet) {
+  const dateValidation = SpreadsheetApp.newDataValidation()
+    .requireDate()
+    .setAllowInvalid(false)
+    .setHelpText('Double-cliquez dans la cellule pour choisir une date dans le calendrier.')
+    .build();
+  ADMIN_DATE_INPUT_COLUMNS.forEach(function(spec) {
+    const sheet = spreadsheet.getSheetByName(spec[0]);
+    applyValidationToColumn_(sheet, spec[1], dateValidation);
+    sheet.getRange(1, headerColumn_(sheet, spec[1]))
+      .setNote('Double-cliquez dans une cellule pour ouvrir le calendrier.');
+  });
+
+  const timeValidation = SpreadsheetApp.newDataValidation()
+    .requireValueInList(timeDropdownOptions_(15), true)
+    .setAllowInvalid(true)
+    .setHelpText('Choisissez une heure par tranches de 15 minutes, ou saisissez une autre heure valide au format HH:mm.')
+    .build();
+  ADMIN_TIME_INPUT_COLUMNS.forEach(function(spec) {
+    const sheet = spreadsheet.getSheetByName(spec[0]);
+    applyValidationToColumn_(sheet, spec[1], timeValidation);
+    sheet.getRange(1, headerColumn_(sheet, spec[1]))
+      .setNote('Liste par tranches de 15 minutes. Une autre heure valide peut aussi être saisie au format HH:mm.');
+  });
+}
+
+function timeDropdownOptions_(intervalMinutes) {
+  const interval = Math.max(1, Math.min(60, Math.round(Number(intervalMinutes) || 15)));
+  const options = [];
+  for (let minutes = 0; minutes < 24 * 60; minutes += interval) {
+    const hours = String(Math.floor(minutes / 60)).padStart(2, '0');
+    const minute = String(minutes % 60).padStart(2, '0');
+    options.push(hours + ':' + minute);
+  }
+  return options;
 }
 
 function applyValidationToColumn_(sheet, header, validation) {
@@ -159,16 +214,9 @@ function applyReferenceValidations_() {
 
 function applyFormats_() {
   const spreadsheet = adminSpreadsheet_();
-  [
-    [APP.sheets.tournaments, 'Date début'],
-    [APP.sheets.tournaments, 'Date fin'],
-    [APP.sheets.tournaments, 'Date limite inscription'],
-    [APP.sheets.availability, 'Date'],
-    [APP.sheets.matches, 'Date'],
-    [APP.sheets.photos, 'Date']
-  ].forEach(function(spec) {
+  ADMIN_DATE_INPUT_COLUMNS.forEach(function(spec) {
     const sheet = spreadsheet.getSheetByName(spec[0]);
-    sheet.getRange(2, headerColumn_(sheet, spec[1]), Math.max(sheet.getMaxRows() - 1, 1), 1).setNumberFormat('yyyy-mm-dd');
+    sheet.getRange(2, headerColumn_(sheet, spec[1]), Math.max(sheet.getMaxRows() - 1, 1), 1).setNumberFormat('dd/mm/yyyy');
   });
   [
     [APP.sheets.registrations, 'Horodatage'],
@@ -178,13 +226,7 @@ function applyFormats_() {
     const sheet = spreadsheet.getSheetByName(spec[0]);
     sheet.getRange(2, headerColumn_(sheet, spec[1]), Math.max(sheet.getMaxRows() - 1, 1), 1).setNumberFormat('yyyy-mm-dd hh:mm');
   });
-  [
-    [APP.sheets.availability, 'Heure début'],
-    [APP.sheets.availability, 'Heure fin'],
-    [APP.sheets.availability, 'Pause début'],
-    [APP.sheets.availability, 'Pause fin'],
-    [APP.sheets.matches, 'Heure']
-  ].forEach(function(spec) {
+  ADMIN_TIME_INPUT_COLUMNS.forEach(function(spec) {
     const sheet = spreadsheet.getSheetByName(spec[0]);
     sheet.getRange(2, headerColumn_(sheet, spec[1]), Math.max(sheet.getMaxRows() - 1, 1), 1).setNumberFormat('hh:mm');
   });
