@@ -20,7 +20,7 @@ La saisie et les corrections dans Google Sheets ne déclenchent aucun script. Un
 ## Contenu du dépôt
 
 - `apps-script/` : création du classeur, inscriptions, génération d’horaire, calcul des classements et publication manuelle;
-- `site/` : interface publique responsive, en français;
+- `site/` : interface publique responsive, en français, incluant les prochains matchs, classements, séries et champions;
 - `docs/` : instructions d'installation et d'exploitation;
 - les fichiers DOCX/XLSX historiques restent localement comme références et sont exclus du dépôt public.
 

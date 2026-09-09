@@ -29,6 +29,7 @@
       <nav class="tabs" aria-label="Sections du tournoi">
         <button class="tab is-active" type="button" data-tab="overview">Aperçu</button>
         <button class="tab" type="button" data-tab="schedule">Matchs</button>
+        <button class="tab" type="button" data-tab="playoffs">Séries</button>
         <button class="tab" type="button" data-tab="standings">Classements</button>
         <button class="tab" type="button" data-tab="teams">Équipes</button>
       </nav>
@@ -46,6 +47,13 @@
           </select></label>
         </div>
         <div id="matches" class="match-grid"></div>
+      </section>
+      <section id="playoffs" class="panel" aria-labelledby="playoffs-title">
+        <h2 id="playoffs-title">Séries éliminatoires</h2>
+        <div class="section-heading"><h3>Champions</h3></div>
+        <div id="champions-content" class="champion-grid"></div>
+        <div class="section-heading"><h3>Tableau des séries</h3></div>
+        <div id="playoffs-content"></div>
       </section>
       <section id="standings" class="panel" aria-labelledby="standings-title">
         <h2 id="standings-title">Classements</h2><div id="standings-content"></div>

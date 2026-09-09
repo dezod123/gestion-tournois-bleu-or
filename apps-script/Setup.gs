@@ -126,7 +126,7 @@ function applyValidations_() {
     [APP.sheets.tournaments, 'Statut', ['ACTIF', 'INACTIF']],
     [APP.sheets.registrations, 'Statut', ['EN ATTENTE', 'APPROUVÉE', 'REFUSÉE']],
     [APP.sheets.teams, 'Statut', ['APPROUVÉE', 'INACTIVE']],
-    [APP.sheets.matches, 'Phase', ['POOL', 'DEMI-FINALE', 'FINALE', 'AMICAL']]
+    [APP.sheets.matches, 'Phase', ['POOL', 'ÉLIMINATOIRE', 'QUART-DE-FINALE', 'DEMI-FINALE', 'FINALE', 'AMICAL']]
   ].forEach(function(spec) {
     const validation = SpreadsheetApp.newDataValidation().requireValueInList(spec[2], true).setAllowInvalid(false).build();
     const sheet = spreadsheet.getSheetByName(spec[0]);

@@ -59,6 +59,12 @@ Voir [`HORAIRE.md`](HORAIRE.md) pour les règles de placement et les limites act
 
 Les scores incomplets et les matchs dont la case `Résultat final` n'est pas cochée ne sont pas utilisés dans le classement public.
 
+## Publier les séries et les champions
+
+Les matchs éliminatoires peuvent être ajoutés manuellement dans `MATCHS` en choisissant la phase `ÉLIMINATOIRE`, `QUART-DE-FINALE`, `DEMI-FINALE` ou `FINALE`. La page publique les regroupe dans l'onglet **Séries**.
+
+Lorsqu'une finale possède deux scores différents et que `Résultat final` est coché, son gagnant apparaît automatiquement parmi les champions. Une finale à égalité ne produit pas de champion tant que le résultat décisif n'est pas inscrit.
+
 ## Rendre l'instantané lisible par GitHub Pages
 
 Cette opération se fait une seule fois par copie du gabarit :

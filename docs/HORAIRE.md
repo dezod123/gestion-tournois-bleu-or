@@ -2,7 +2,7 @@
 
 ## Portée de cette version
 
-Le générateur construit les matchs de poules d’un tournoi à partir des équipes approuvées et des plages disponibles. Il ne génère pas encore les demi-finales, finales ou matchs de consolation, puisque ces rencontres dépendent généralement des résultats du classement.
+Le générateur construit les matchs de poules d’un tournoi à partir des équipes approuvées et des plages disponibles. Il ne génère pas encore automatiquement les demi-finales, finales ou matchs de consolation, puisque ces rencontres dépendent généralement des résultats du classement. Ces matchs peuvent toutefois être créés manuellement dans `MATCHS`; ils seront regroupés dans la section publique **Séries**, et une finale terminée déterminera automatiquement le champion affiché.
 
 Le générateur ne modifie et ne supprime jamais un match existant. Les matchs déjà présents dans `MATCHS`, y compris ceux dont le résultat est final, comptent dans le nombre de confrontations demandé afin d’éviter les doublons.
 

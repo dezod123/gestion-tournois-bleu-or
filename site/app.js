@@ -1,8 +1,9 @@
 (function () {
   'use strict';
   const state = { data: null, tournamentId: '', divisionId: 'all', teamId: 'all', matchStatus: 'all' };
+  const playoffPhaseOrder = ['ÉLIMINATOIRE', 'QUART-DE-FINALE', 'DEMI-FINALE', 'FINALE'];
   const elements = {};
-  document.addEventListener('DOMContentLoaded', init);
+  if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', init);
 
   async function init() {
     cacheElements(); bindEvents();
@@ -19,7 +20,7 @@
 
   function cacheElements() {
     ['tournament-name','tournament-details','publication-date','registration-link','status','tournament-filter','division-filter','team-filter',
-      'match-status-filter','summary-cards','upcoming-matches','matches','standings-content','teams-content'].forEach(function (id) {
+      'match-status-filter','summary-cards','upcoming-matches','matches','champions-content','playoffs-content','standings-content','teams-content'].forEach(function (id) {
       elements[toCamel(id)] = document.getElementById(id);
     });
   }
@@ -111,7 +112,7 @@
     configureRegistrationLink(tournament);
     elements.publicationDate.textContent = state.data.publication.publishedAt ? 'Dernière publication : ' + formatDateTime(state.data.publication.publishedAt) : 'Date de publication inconnue';
     if (state.data.publication.message) showStatus(state.data.publication.message, false); else elements.status.hidden = true;
-    renderSummary(); renderMatches(); renderStandings(); renderTeams();
+    renderSummary(); renderMatches(); renderPlayoffs(); renderStandings(); renderTeams();
   }
 
   function filteredTeams() {
@@ -142,10 +143,14 @@
 
   function renderMatchList(container, matches, emptyMessage) {
     if (!matches.length) { container.innerHTML = empty(emptyMessage); return; }
+    container.innerHTML = matchCardsHtml(matches);
+  }
+
+  function matchCardsHtml(matches) {
     const teamIndex = Object.fromEntries(state.data.equipe.map(function (team) { return [team.id,team]; }));
     const venueIndex = Object.fromEntries(state.data.lieu.map(function (venue) { return [venue.id,venue]; }));
     const divisionIndex = Object.fromEntries(state.data.division.map(function (division) { return [division.id,division]; }));
-    container.innerHTML = matches.map(function (match) {
+    return matches.map(function (match) {
       const home = teamIndex[match.homeTeamId] || { name: match.homeTeamId };
       const away = teamIndex[match.awayTeamId] || { name: match.awayTeamId };
       const division = divisionIndex[match.divisionId] || { name: '' };
@@ -158,6 +163,68 @@
   }
 
   function matchTeam(name, score) { return '<div class="match-team"><span>' + escapeHtml(name) + '</span><strong class="score">' + escapeHtml(score) + '</strong></div>'; }
+
+  function renderPlayoffs() {
+    const divisionIndex = Object.fromEntries(state.data.division.map(function (division) { return [division.id, division]; }));
+    const teamIndex = Object.fromEntries(state.data.equipe.map(function (team) { return [team.id, team]; }));
+    const playoffMatches = filteredMatches(true).filter(isPlayoffMatch);
+    const divisionIds = unique(playoffMatches.map(function (match) { return match.divisionId; }));
+    const blocks = divisionIds.map(function (divisionId) {
+      const division = divisionIndex[divisionId] || { name: divisionId };
+      const matches = playoffMatches.filter(function (match) { return match.divisionId === divisionId; });
+      const phases = playoffPhaseOrder.map(function (phase) {
+        const phaseMatches = matches.filter(function (match) { return normalizePhase(match.phase) === normalizePhase(phase); });
+        if (!phaseMatches.length) return '';
+        return '<section class="playoff-round"><h4>' + escapeHtml(playoffPhaseLabel(phase)) + '</h4><div class="match-grid">' +
+          matchCardsHtml(phaseMatches) + '</div></section>';
+      }).join('');
+      return '<article class="playoff-block"><h3>' + escapeHtml(division.name) + '</h3>' + phases + '</article>';
+    });
+    elements.playoffsContent.innerHTML = blocks.join('') || empty('Aucun match éliminatoire n’est encore publié dans cette sélection.');
+
+    const visibleDivisions = state.data.division.filter(function (division) {
+      return division.tournamentId === state.tournamentId && (state.divisionId === 'all' || division.id === state.divisionId);
+    });
+    const champions = [];
+    visibleDivisions.forEach(function (division) {
+      const finals = state.data.match.filter(function (match) {
+        return match.tournamentId === state.tournamentId && match.divisionId === division.id &&
+          normalizePhase(match.phase) === 'FINALE' && match.final;
+      }).sort(compareMatches);
+      if (!finals.length) return;
+      const finalMatch = finals[finals.length - 1];
+      const winnerId = championTeamId(finalMatch);
+      if (!winnerId || (state.teamId !== 'all' && state.teamId !== winnerId)) return;
+      const winner = teamIndex[winnerId] || { name: winnerId };
+      champions.push('<article class="champion-card"><span>Champion · ' + escapeHtml(division.name) + '</span><strong>' +
+        escapeHtml(winner.name) + '</strong><small>Finale du ' + escapeHtml(formatDate(finalMatch.date)) + '</small></article>');
+    });
+    elements.championsContent.innerHTML = champions.join('') || empty('Les champions apparaîtront ici lorsque les finales seront terminées.');
+  }
+
+  function normalizePhase(value) {
+    return String(value == null ? '' : value).trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function isPlayoffMatch(match) { return playoffPhaseOrder.map(normalizePhase).includes(normalizePhase(match && match.phase)); }
+
+  function playoffPhaseLabel(phase) {
+    return {
+      'ELIMINATOIRE': 'Éliminatoires',
+      'QUART-DE-FINALE': 'Quarts de finale',
+      'DEMI-FINALE': 'Demi-finales',
+      'FINALE': 'Finale'
+    }[normalizePhase(phase)] || String(phase || 'Séries');
+  }
+
+  function championTeamId(match) {
+    if (!match || !match.final) return '';
+    if (match.homeScore === '' || match.homeScore == null || match.awayScore === '' || match.awayScore == null) return '';
+    const home = Number(match.homeScore);
+    const away = Number(match.awayScore);
+    if (!Number.isFinite(home) || !Number.isFinite(away) || home === away) return '';
+    return home > away ? String(match.homeTeamId || '') : String(match.awayTeamId || '');
+  }
 
   function renderStandings() {
     const divisions = state.data.division.filter(function (division) { return division.tournamentId === state.tournamentId && (state.divisionId === 'all' || division.id === state.divisionId); });
@@ -198,4 +265,7 @@
   function showStatus(message,isError) { elements.status.textContent = message; elements.status.hidden = false; elements.status.classList.toggle('is-error',Boolean(isError)); }
   function safeExternalUrl(value) { try { const url = new URL(String(value || '')); return url.protocol === 'https:' ? url.href : ''; } catch (error) { return ''; } }
   function escapeHtml(value) { return String(value == null ? '' : value).replace(/[&<>'"]/g,function (character) { return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[character]; }); }
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { normalizePhase: normalizePhase, isPlayoffMatch: isPlayoffMatch, playoffPhaseLabel: playoffPhaseLabel, championTeamId: championTeamId };
+  }
 })();
