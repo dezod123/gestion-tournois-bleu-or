@@ -68,6 +68,8 @@ function genererIdentifiantsManquants() {
       update.sheet.getRange(2, 1, update.values.length, update.width).setValues(update.values);
     });
     SpreadsheetApp.flush();
+    refreshAdminReferenceLabelsFromIds_(spreadsheet);
+    applyAdminReferenceDisplayValidations_(spreadsheet);
     spreadsheet.toast(
       generated ? generated + ' identifiant(s) généré(s).' : 'Tous les identifiants sont déjà présents.',
       'Identifiants',
@@ -113,6 +115,7 @@ function creerNouvelleEdition() {
   });
   const spreadsheet = adminSpreadsheet_();
   const tournamentSheet = spreadsheet.getSheetByName(APP.sheets.tournaments);
+  applyAdminReferenceDisplayValidations_(spreadsheet);
   spreadsheet.setActiveSheet(tournamentSheet);
   spreadsheet.setActiveRange(tournamentSheet.getRange(row, headerColumn_(tournamentSheet, 'Nom')));
   spreadsheet.toast(
@@ -124,7 +127,7 @@ function creerNouvelleEdition() {
 
 function protectSystemColumns_() {
   const spreadsheet = SpreadsheetApp.getActive();
-  const protectedColumns = ID_ENTITIES.concat([
+  const protectedColumns = ID_ENTITIES.concat(adminReferenceProtectedColumns_()).concat([
     { sheet: APP.sheets.teams, header: 'ID inscription source' },
     { sheet: APP.sheets.registrations, header: 'ID soumission' },
     { sheet: APP.sheets.registrations, header: 'Horodatage' },

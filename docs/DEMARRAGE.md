@@ -32,7 +32,8 @@ L'initialisation crée les onglets manquants et ajoute à droite les nouvelles c
 
 - **Tournoi → Créer une nouvelle édition** demande le nom et l'édition, puis crée la ligne `TOURNOIS` avec un identifiant permanent et le statut `INACTIF`.
 - Après avoir ajouté manuellement des divisions, lieux, plages horaires, équipes, matchs ou photos, choisir **Tournoi → Générer les identifiants manquants**. Les cellules techniques grisées sont remplies automatiquement.
-- Ne jamais recopier ni modifier un identifiant existant. Les listes déroulantes des colonnes de référence permettent de sélectionner le bon tournoi, la bonne division, le bon lieu ou la bonne équipe.
+- Ne jamais recopier ni modifier un identifiant existant. Les administrateurs utilisent les colonnes lisibles `Tournoi`, `Division`, `Lieu` et `Équipe`; les colonnes `ID ...` voisines sont protégées et remplies automatiquement.
+- Après une saisie manuelle, utiliser **Tournoi → Synchroniser les sélections administratives** pour vérifier immédiatement les choix. La même synchronisation est exécutée automatiquement avant une génération d'horaire ou une publication.
 
 Voir [`IDENTIFIANTS_ET_HORAIRES.md`](IDENTIFIANTS_ET_HORAIRES.md) pour la configuration détaillée.
 

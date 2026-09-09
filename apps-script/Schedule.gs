@@ -8,6 +8,8 @@ function genererHoraireTournoiSelectionne() {
   let tournament;
   let preview;
   try {
+    synchroniserReferencesAdministratives_(adminSpreadsheet_());
+    SpreadsheetApp.flush();
     tournament = selectedTournamentForSchedule_();
     preview = buildSchedulePlan_(tournament);
   } catch (error) {
@@ -384,7 +386,7 @@ function scheduleCandidatesForFixture_(fixture, windows) {
     for (let start = window.start; start + fixture.duration <= window.end; start += SCHEDULE_MINUTE_STEP) {
       candidates.push({
         date: window.date, start: start, end: start + fixture.duration, venueId: window.venueId,
-        homeTeamId: fixture.homeTeamId, awayTeamId: fixture.awayTeamId
+        venueName: window.venueName, homeTeamId: fixture.homeTeamId, awayTeamId: fixture.awayTeamId
       });
     }
   });
@@ -474,13 +476,16 @@ function applySchedulePlan_(plan) {
     return {
       'ID match': newId_('MAT'),
       'ID tournoi': plan.tournamentId,
+      'Tournoi': plan.tournamentName,
       'ID division': match.divisionId,
+      'Division': match.divisionName,
       'Pool': match.pool,
       'Phase': 'POOL',
       'Ronde': String(match.round),
       'Date': scheduleDateValue_(match.date),
       'Heure': scheduleTimeValue_(match.start),
       'ID lieu': match.venueId,
+      'Lieu': match.venueName,
       'ID équipe domicile': match.homeTeamId,
       'Équipe domicile': match.homeTeamName,
       'ID équipe visiteuse': match.awayTeamId,

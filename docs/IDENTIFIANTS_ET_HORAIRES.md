@@ -24,7 +24,10 @@ Chaque valeur utilise un UUID généré par Google Apps Script. La probabilité 
 1. Utiliser **Créer une nouvelle édition** pour le tournoi.
 2. Saisir les autres lignes sans remplir leur première colonne grisée.
 3. Utiliser **Générer les identifiants manquants** avant de relier ces lignes ailleurs ou de publier.
-4. Sélectionner les identifiants de référence au moyen des listes déroulantes.
+4. Sélectionner les noms dans les colonnes `Tournoi`, `Division`, `Lieu` et `Équipe`; les identifiants voisins sont remplis automatiquement.
+5. Utiliser **Synchroniser les sélections administratives** pour valider les liens avant la publication, au besoin.
+
+Le libellé d'un tournoi combine son nom et son édition, par exemple `Tournoi Bleu & Or — 2026`. Cela permet de distinguer plusieurs éditions simultanées. Les divisions, lieux et équipes sont ensuite validés dans le contexte du tournoi choisi. Un nom ambigu ou provenant d'un autre tournoi produit une erreur explicite plutôt qu'un lien incorrect.
 
 La génération ne remplace jamais une valeur existante. Pour Google Forms, `ID inscription` est créé lors de l'importation administrative de la réponse. Lors de l'approbation, l'équipe reçoit son propre `ID équipe` et conserve `ID inscription source` comme lien vers la demande d'origine.
 

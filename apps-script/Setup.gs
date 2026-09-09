@@ -3,6 +3,7 @@ function initialiserClasseur() {
   const spreadsheet = SpreadsheetApp.getActive();
   if (!spreadsheet) throw new Error('Exécutez cette fonction depuis le classeur Google Sheets administratif.');
   PropertiesService.getScriptProperties().setProperty('ADMIN_SPREADSHEET_ID', spreadsheet.getId());
+  ensureAdminReferenceColumns_(spreadsheet);
   ensureMatchTeamNameColumns_(spreadsheet);
   Object.keys(APP.headers).filter(function(sheetName) {
     return sheetName !== APP.sheets.publicData;
@@ -14,8 +15,10 @@ function initialiserClasseur() {
   const publicSpreadsheet = ensurePublicSpreadsheet_();
   applyValidations_();
   applyFormats_();
+  refreshAdminReferenceLabelsFromIds_(spreadsheet);
   refreshMatchTeamNamesFromIds_(spreadsheet);
   protectSystemColumns_();
+  styleAdminReferenceColumns_(spreadsheet);
   styleMatchTeamNameColumns_(spreadsheet);
   stylePublicSheet_(publicSpreadsheet);
   onOpen();
@@ -78,7 +81,7 @@ function ensureSheetSchema_(spreadsheet, sheetName, requiredHeaders) {
 function seedSettings_() {
   const defaults = [
     ['VERSION_SCHEMA', '1', 'Version du contrat de données publiques'],
-    ['VERSION_STRUCTURE_ADMIN', '7', 'Version de la structure du classeur administratif'],
+    ['VERSION_STRUCTURE_ADMIN', '8', 'Version de la structure du classeur administratif'],
     ['LANGUE', 'fr-CA', 'Langue principale du site'],
     ['FUSEAU_HORAIRE', 'America/Toronto', 'Fuseau utilisé pour les dates de publication'],
     ['DERNIERE_PUBLICATION', '', 'Mise à jour automatiquement'],
@@ -92,7 +95,7 @@ function seedSettings_() {
   defaults.forEach(function(row) {
     if (current.indexOf(normalize_(row[0])) < 0) sheet.appendRow(row);
   });
-  upsertSetting_('VERSION_STRUCTURE_ADMIN', '7', 'Version de la structure du classeur administratif');
+  upsertSetting_('VERSION_STRUCTURE_ADMIN', '8', 'Version de la structure du classeur administratif');
 }
 
 function resetRegistrationFormsForCopiedWorkbook_(spreadsheet) {
@@ -136,6 +139,7 @@ function applyValidations_() {
 
   applyDateAndTimeValidations_(spreadsheet);
   applyReferenceValidations_();
+  applyAdminReferenceDisplayValidations_(spreadsheet);
 }
 
 function applyDateAndTimeValidations_(spreadsheet) {

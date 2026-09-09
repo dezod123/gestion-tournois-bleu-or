@@ -11,6 +11,8 @@ function publierChangements() {
     return;
   }
   try {
+    synchroniserReferencesAdministratives_(adminSpreadsheet_());
+    SpreadsheetApp.flush();
     synchroniserSelectionsEquipesMatchs_(adminSpreadsheet_());
     SpreadsheetApp.flush();
     const snapshot = buildPublicSnapshot_();

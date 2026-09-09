@@ -334,6 +334,7 @@ function importerNouvellesInscriptions() {
             'ID inscription': newId_('INS'),
             'Horodatage': response.getTimestamp(),
             'ID tournoi': submitted.tournamentId,
+            'Tournoi': submitted.tournamentLabel,
             'Nom équipe': safeSheetText_(submitted.teamName),
             'École': safeSheetText_(submitted.school),
             'Adresse': safeSheetText_(submitted.address),
@@ -343,6 +344,7 @@ function importerNouvellesInscriptions() {
             'Téléphone': safeSheetText_(submitted.phone),
             'Courriel': safeSheetText_(submitted.email),
             'ID division': submitted.divisionId,
+            'Division': submitted.divisionLabel,
             'Nombre équipes': 1,
             'Statut': APP.statuses.pending,
             'Notes internes': 'Importée depuis Google Forms.',
@@ -384,6 +386,7 @@ function registrationFromGoogleFormResponse_(tournament, divisions, response) {
   if (!answer(REGISTRATION_FORM_FIELDS.consent)) throw new Error('Le consentement obligatoire est absent.');
   return {
     tournamentId: tournamentId,
+    tournamentLabel: registrationTournamentLabel_(tournament),
     teamName: cleanText_(answer(REGISTRATION_FORM_FIELDS.teamName), 140, true, REGISTRATION_FORM_FIELDS.teamName),
     school: cleanText_(answer(REGISTRATION_FORM_FIELDS.school), 140, true, REGISTRATION_FORM_FIELDS.school),
     address: cleanText_(answer(REGISTRATION_FORM_FIELDS.address), 180, true, REGISTRATION_FORM_FIELDS.address),
@@ -392,7 +395,8 @@ function registrationFromGoogleFormResponse_(tournament, divisions, response) {
     contactName: cleanText_(answer(REGISTRATION_FORM_FIELDS.contactName), 140, true, REGISTRATION_FORM_FIELDS.contactName),
     phone: normalizePhone_(answer(REGISTRATION_FORM_FIELDS.phone)),
     email: normalizeEmail_(answer(REGISTRATION_FORM_FIELDS.email)),
-    divisionId: cleanText_(matchingDivisions[0]['ID division'], 80, true, 'ID division')
+    divisionId: cleanText_(matchingDivisions[0]['ID division'], 80, true, 'ID division'),
+    divisionLabel: cleanText_(matchingDivisions[0]['Nom'], 140, true, 'Division')
   };
 }
 
@@ -500,15 +504,15 @@ function approuverInscriptionsSelectionnees() {
       const source = String(team['ID inscription source'] || '').trim();
       if (source) existingSources[source] = true;
     });
-    const tournamentIds = {};
+    const tournamentById = {};
     rowsAsObjects_(APP.sheets.tournaments).forEach(function(tournament) {
       const id = String(tournament['ID tournoi'] || '').trim();
-      if (id) tournamentIds[id] = true;
+      if (id) tournamentById[id] = tournament;
     });
-    const divisionTournaments = {};
+    const divisionById = {};
     rowsAsObjects_(APP.sheets.divisions).forEach(function(division) {
       const id = String(division['ID division'] || '').trim();
-      if (id) divisionTournaments[id] = String(division['ID tournoi'] || '').trim();
+      if (id) divisionById[id] = division;
     });
     const plans = registrations.map(function(registration) {
       const id = String(registration['ID inscription'] || '').trim() || newId_('INS');
@@ -518,8 +522,8 @@ function approuverInscriptionsSelectionnees() {
       const school = cleanText_(registration['École'], 140, true, 'École, ligne ' + registration.__row);
       const tournamentId = cleanText_(registration['ID tournoi'], 80, true, 'ID tournoi, ligne ' + registration.__row);
       const divisionId = cleanText_(registration['ID division'], 80, true, 'ID division, ligne ' + registration.__row);
-      if (!tournamentIds[tournamentId]) throw new Error('Le tournoi de la ligne ' + registration.__row + ' est introuvable.');
-      if (divisionTournaments[divisionId] !== tournamentId) {
+      if (!tournamentById[tournamentId]) throw new Error('Le tournoi de la ligne ' + registration.__row + ' est introuvable.');
+      if (!divisionById[divisionId] || String(divisionById[divisionId]['ID tournoi'] || '').trim() !== tournamentId) {
         throw new Error('La division de la ligne ' + registration.__row + ' n’appartient pas au tournoi sélectionné.');
       }
       existingSources[id] = true;
@@ -530,7 +534,9 @@ function approuverInscriptionsSelectionnees() {
         name: name,
         school: school,
         tournamentId: tournamentId,
-        divisionId: divisionId
+        tournamentLabel: registrationTournamentLabel_(tournamentById[tournamentId]),
+        divisionId: divisionId,
+        divisionLabel: String(divisionById[divisionId]['Nom'] || '').trim()
       };
     });
 
@@ -539,7 +545,9 @@ function approuverInscriptionsSelectionnees() {
       writeObjectRow_(APP.sheets.teams, {
         'ID équipe': plan.teamId,
         'ID tournoi': plan.tournamentId,
+        'Tournoi': plan.tournamentLabel,
         'ID division': plan.divisionId,
+        'Division': plan.divisionLabel,
         'Nom': safeSheetText_(plan.name),
         'École': safeSheetText_(plan.school),
         'Statut': APP.statuses.approved,
@@ -549,6 +557,7 @@ function approuverInscriptionsSelectionnees() {
       setRegistrationProcessing_(registrationSheet, plan.registration.__row, plan.registrationId, APP.statuses.approved, adminEmail);
     });
     SpreadsheetApp.flush();
+    applyAdminReferenceDisplayValidations_(adminSpreadsheet_());
     ui.alert('Approbation terminée', plans.length + ' équipe(s) officielle(s) ont été créées.', ui.ButtonSet.OK);
   } catch (error) {
     ui.alert('Approbation annulée', error.message || String(error), ui.ButtonSet.OK);

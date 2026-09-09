@@ -112,5 +112,6 @@ assert.equal(demoPlan.poolAssignments[0].pool, 'A');
 assert.equal(demoPlan.existingMatchCount, 3);
 assert.equal(demoPlan.matches.length, 3);
 assert.equal(demoPlan.matches.every((match) => match.homeTeamId === 'E04' || match.awayTeamId === 'E04'), true);
+assert.equal(demoPlan.matches.every((match) => match.venueName === 'Gymnase'), true);
 
 console.log('Schedule tests passed.');

@@ -60,4 +60,6 @@ Une commande administrative importe en lot les nouvelles réponses dans `INSCRIP
 
 Les identifiants techniques sont produits par Apps Script et ne doivent pas être saisis ni modifiés par les administrateurs. La commande **Tournoi → Générer les identifiants manquants** complète les lignes déjà saisies sans remplacer un identifiant existant. Les importations, approbations et générations d’horaire utilisent le même générateur directement.
 
+Chaque référence administrative conserve une paire `ID technique | libellé lisible`. L'administrateur choisit le libellé; une synchronisation résout et valide l'identifiant en tenant compte du tournoi et, lorsque requis, de la division. Cette séparation permet de renommer un objet sans casser les matchs ou les inscriptions qui le référencent.
+
 La durée par défaut est configurée dans `TOURNOIS`. Une valeur facultative dans `DIVISIONS` permet de la remplacer pour une catégorie précise. `PLAGES_HORAIRES` décrit les heures réellement disponibles par date et par lieu, y compris une pause facultative. Ces données demeurent privées et alimentent le générateur de matchs de poules; l’horaire produit reste modifiable dans `MATCHS` avant sa publication.

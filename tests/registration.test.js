@@ -95,7 +95,9 @@ const answers = {
 };
 const imported = context.registrationFromGoogleFormResponse_(tournament, divisions, fakeResponse(answers));
 assert.equal(imported.tournamentId, 'TRN-TEST');
+assert.equal(imported.tournamentLabel, 'Tournoi test — 2026');
 assert.equal(imported.divisionId, 'DIV-B');
+assert.equal(imported.divisionLabel, 'Benjamin féminin');
 assert.equal(imported.postalCode, 'H1H 1H1');
 assert.equal(imported.phone, '514 555-0101 poste 12');
 assert.equal(imported.email, 'camille@example.com');
