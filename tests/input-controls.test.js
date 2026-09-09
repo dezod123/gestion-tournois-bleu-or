@@ -6,11 +6,12 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 const context = { console };
 vm.createContext(context);
-['Config.gs', 'Setup.gs'].forEach((file) => {
+// Apps Script does not guarantee file evaluation order. Setup must be safe to load first.
+['Setup.gs', 'Config.gs'].forEach((file) => {
   vm.runInContext(fs.readFileSync(path.join(root, 'apps-script', file), 'utf8'), context, { filename: file });
 });
 
-const dateColumns = JSON.parse(vm.runInContext('JSON.stringify(ADMIN_DATE_INPUT_COLUMNS)', context));
+const dateColumns = JSON.parse(vm.runInContext('JSON.stringify(adminDateInputColumns_())', context));
 assert.deepEqual(dateColumns, [
   ['TOURNOIS', 'Date début'],
   ['TOURNOIS', 'Date fin'],
@@ -20,7 +21,7 @@ assert.deepEqual(dateColumns, [
   ['PHOTOS', 'Date']
 ]);
 
-const timeColumns = JSON.parse(vm.runInContext('JSON.stringify(ADMIN_TIME_INPUT_COLUMNS)', context));
+const timeColumns = JSON.parse(vm.runInContext('JSON.stringify(adminTimeInputColumns_())', context));
 assert.deepEqual(timeColumns, [
   ['PLAGES_HORAIRES', 'Heure début'],
   ['PLAGES_HORAIRES', 'Heure fin'],

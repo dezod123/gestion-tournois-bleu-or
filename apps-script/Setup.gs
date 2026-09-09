@@ -26,22 +26,26 @@ function initialiserClasseur() {
   );
 }
 
-const ADMIN_DATE_INPUT_COLUMNS = Object.freeze([
-  Object.freeze([APP.sheets.tournaments, 'Date début']),
-  Object.freeze([APP.sheets.tournaments, 'Date fin']),
-  Object.freeze([APP.sheets.tournaments, 'Date limite inscription']),
-  Object.freeze([APP.sheets.availability, 'Date']),
-  Object.freeze([APP.sheets.matches, 'Date']),
-  Object.freeze([APP.sheets.photos, 'Date'])
-]);
+function adminDateInputColumns_() {
+  return [
+    [APP.sheets.tournaments, 'Date début'],
+    [APP.sheets.tournaments, 'Date fin'],
+    [APP.sheets.tournaments, 'Date limite inscription'],
+    [APP.sheets.availability, 'Date'],
+    [APP.sheets.matches, 'Date'],
+    [APP.sheets.photos, 'Date']
+  ];
+}
 
-const ADMIN_TIME_INPUT_COLUMNS = Object.freeze([
-  Object.freeze([APP.sheets.availability, 'Heure début']),
-  Object.freeze([APP.sheets.availability, 'Heure fin']),
-  Object.freeze([APP.sheets.availability, 'Pause début']),
-  Object.freeze([APP.sheets.availability, 'Pause fin']),
-  Object.freeze([APP.sheets.matches, 'Heure'])
-]);
+function adminTimeInputColumns_() {
+  return [
+    [APP.sheets.availability, 'Heure début'],
+    [APP.sheets.availability, 'Heure fin'],
+    [APP.sheets.availability, 'Pause début'],
+    [APP.sheets.availability, 'Pause fin'],
+    [APP.sheets.matches, 'Heure']
+  ];
+}
 
 function ensureSheetSchema_(spreadsheet, sheetName, requiredHeaders) {
   let sheet = spreadsheet.getSheetByName(sheetName);
@@ -140,7 +144,7 @@ function applyDateAndTimeValidations_(spreadsheet) {
     .setAllowInvalid(false)
     .setHelpText('Double-cliquez dans la cellule pour choisir une date dans le calendrier.')
     .build();
-  ADMIN_DATE_INPUT_COLUMNS.forEach(function(spec) {
+  adminDateInputColumns_().forEach(function(spec) {
     const sheet = spreadsheet.getSheetByName(spec[0]);
     applyValidationToColumn_(sheet, spec[1], dateValidation);
     sheet.getRange(1, headerColumn_(sheet, spec[1]))
@@ -152,7 +156,7 @@ function applyDateAndTimeValidations_(spreadsheet) {
     .setAllowInvalid(true)
     .setHelpText('Choisissez une heure par tranches de 15 minutes, ou saisissez une autre heure valide au format HH:mm.')
     .build();
-  ADMIN_TIME_INPUT_COLUMNS.forEach(function(spec) {
+  adminTimeInputColumns_().forEach(function(spec) {
     const sheet = spreadsheet.getSheetByName(spec[0]);
     applyValidationToColumn_(sheet, spec[1], timeValidation);
     sheet.getRange(1, headerColumn_(sheet, spec[1]))
@@ -214,7 +218,7 @@ function applyReferenceValidations_() {
 
 function applyFormats_() {
   const spreadsheet = adminSpreadsheet_();
-  ADMIN_DATE_INPUT_COLUMNS.forEach(function(spec) {
+  adminDateInputColumns_().forEach(function(spec) {
     const sheet = spreadsheet.getSheetByName(spec[0]);
     sheet.getRange(2, headerColumn_(sheet, spec[1]), Math.max(sheet.getMaxRows() - 1, 1), 1).setNumberFormat('dd/mm/yyyy');
   });
@@ -226,7 +230,7 @@ function applyFormats_() {
     const sheet = spreadsheet.getSheetByName(spec[0]);
     sheet.getRange(2, headerColumn_(sheet, spec[1]), Math.max(sheet.getMaxRows() - 1, 1), 1).setNumberFormat('yyyy-mm-dd hh:mm');
   });
-  ADMIN_TIME_INPUT_COLUMNS.forEach(function(spec) {
+  adminTimeInputColumns_().forEach(function(spec) {
     const sheet = spreadsheet.getSheetByName(spec[0]);
     sheet.getRange(2, headerColumn_(sheet, spec[1]), Math.max(sheet.getMaxRows() - 1, 1), 1).setNumberFormat('hh:mm');
   });
