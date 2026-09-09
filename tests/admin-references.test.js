@@ -113,9 +113,10 @@ assert.throws(
 );
 
 class FakeHeaderSheet {
-  constructor(name, values) { this.name = name; this.headers = values.slice(); }
+  constructor(name, values) { this.name = name; this.headers = values.slice(); this.clearedValidationColumns = []; }
   getName() { return this.name; }
   getLastColumn() { return this.headers.length; }
+  getMaxRows() { return 1000; }
   insertColumnAfter(column) { this.headers.splice(column, 0, ''); }
   getRange(row, column, rowCount, columnCount) {
     if (row === 1 && column === 1 && rowCount === 1) {
@@ -123,6 +124,9 @@ class FakeHeaderSheet {
     }
     if (row === 1 && rowCount === undefined) {
       return { setValue: (value) => { this.headers[column - 1] = value; } };
+    }
+    if (row === 2 && rowCount === 999 && columnCount === 1) {
+      return { clearDataValidations: () => { this.clearedValidationColumns.push(column); } };
     }
     throw new Error('Unexpected fake range.');
   }
@@ -135,5 +139,6 @@ context.ensureAdminReferenceColumns_({
   getSheetByName: (name) => name === 'PLAGES_HORAIRES' ? availability : null
 });
 assert.deepEqual(availability.headers.slice(0, 5), ['ID plage', 'ID tournoi', 'Tournoi', 'ID lieu', 'Lieu']);
+assert.deepEqual(availability.clearedValidationColumns, [3, 5]);
 
 console.log('Administrative reference tests passed.');

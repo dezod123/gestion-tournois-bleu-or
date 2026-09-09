@@ -42,6 +42,7 @@ function ensureAdminReferenceColumns_(spreadsheet) {
       if (!idColumn) return;
       sheet.insertColumnAfter(idColumn);
       sheet.getRange(1, idColumn + 1).setValue(reference.labelHeader);
+      sheet.getRange(2, idColumn + 1, Math.max(sheet.getMaxRows() - 1, 1), 1).clearDataValidations();
     });
   });
 }
@@ -157,7 +158,9 @@ function refreshAdminReferenceLabelsFromIds_(spreadsheet) {
     spec.references.forEach(function(reference) {
       const ids = sheet.getRange(2, headerColumn_(sheet, reference.idHeader), rowCount, 1).getValues();
       const labelColumn = headerColumn_(sheet, reference.labelHeader);
-      const labels = sheet.getRange(2, labelColumn, rowCount, 1).getValues();
+      const labelRange = sheet.getRange(2, labelColumn, rowCount, 1);
+      if (spec.readOnly) labelRange.clearDataValidations();
+      const labels = labelRange.getValues();
       ids.forEach(function(idRow, index) {
         const id = String(idRow[0] || '').trim();
         if (!id) return;
@@ -167,7 +170,7 @@ function refreshAdminReferenceLabelsFromIds_(spreadsheet) {
           updated += 1;
         }
       });
-      sheet.getRange(2, labelColumn, rowCount, 1).setValues(labels);
+      labelRange.setValues(labels);
     });
   });
   return updated;
@@ -196,9 +199,15 @@ function applyAdminReferenceDisplayValidations_(spreadsheet) {
     rowsAsObjects_(APP.sheets.teams)
   );
   adminReferenceSheetSpecs_().forEach(function(spec) {
-    if (spec.readOnly) return;
     const sheet = spreadsheet.getSheetByName(spec.sheet);
     if (!sheet) return;
+    if (spec.readOnly) {
+      spec.references.forEach(function(reference) {
+        sheet.getRange(2, headerColumn_(sheet, reference.labelHeader), Math.max(sheet.getMaxRows() - 1, 1), 1)
+          .clearDataValidations();
+      });
+      return;
+    }
     spec.references.forEach(function(reference) {
       const labels = uniqueAdminReferenceLabels_(lookups[reference.kind].all);
       if (!labels.length) {
