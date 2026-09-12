@@ -13,7 +13,7 @@ const files = fs.readdirSync(appsScriptDirectory).filter((file) => file.endsWith
   order.forEach((file) => {
     vm.runInContext(fs.readFileSync(path.join(appsScriptDirectory, file), 'utf8'), context, { filename: file });
   });
-  assert.equal(vm.runInContext('APP.version', context), '0.12.0');
+  assert.equal(vm.runInContext('APP.version', context), '0.13.0');
   assert.equal(vm.runInContext("typeof mettreAJourSeriesAutomatiques_", context), 'function');
 });
 

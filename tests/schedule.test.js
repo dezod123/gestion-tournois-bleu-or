@@ -49,10 +49,10 @@ twoEncounters.forEach((fixture) => {
 });
 assert.equal(Object.values(pairCounts).every((count) => count === 2), true);
 
-function fixture(home, away, round) {
+function fixture(home, away, round, restMinutes = 0) {
   return {
     tournamentId: 'T1', divisionId: 'D1', divisionName: 'Division test', pool: 'A', duration: 30,
-    homeTeamId: home, homeTeamName: home, awayTeamId: away, awayTeamName: away, round
+    homeTeamId: home, homeTeamName: home, awayTeamId: away, awayTeamName: away, round, restMinutes
   };
 }
 
@@ -76,6 +76,12 @@ assert.throws(
 );
 assert.equal(context.scheduleIntervalsOverlap_(540, 570, 570, 600), false);
 assert.equal(context.scheduleIntervalsOverlap_(540, 571, 570, 600), true);
+assert.equal(context.scheduleIntervalsTooClose_(
+  { start: 540, end: 570, restMinutes: 30 }, { start: 570, end: 600, restMinutes: 30 }
+), true);
+assert.equal(context.scheduleIntervalsTooClose_(
+  { start: 540, end: 570, restMinutes: 30 }, { start: 600, end: 630, restMinutes: 30 }
+), false);
 assert.equal(context.scheduleTimeToMinutes_('16:30', 'America/Toronto', 'Heure'), 990);
 assert.throws(() => context.scheduleTimeToMinutes_('25:00', 'America/Toronto', 'Heure'), /invalide/);
 

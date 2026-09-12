@@ -44,7 +44,7 @@ function migrateMatchTeamColumns_(sheet, legacyIdHeader, legacyNameHeader, techn
 function styleMatchTeamNameColumns_(spreadsheet) {
   const sheet = spreadsheet.getSheetByName(APP.sheets.matches);
   if (!sheet) return;
-  ['Équipe domicile', 'Équipe visiteuse', 'Équipe gagnante'].forEach(function(header) {
+  ['Équipe domicile', 'Équipe visiteuse', 'Équipe forfait', 'Équipe gagnante'].forEach(function(header) {
     const column = headerColumn_(sheet, header);
     sheet.getRange(2, column, Math.max(sheet.getMaxRows() - 1, 1), 1).setBackground('#ffffff');
     sheet.getRange(1, column).setNote('Sélectionnez le nom de l’équipe. L’ID voisin est rempli automatiquement lors de la synchronisation ou de la publication.');
@@ -58,17 +58,21 @@ function refreshMatchTeamNamesFromIds_(spreadsheet) {
   const rowCount = matchSheet.getLastRow() - 1;
   const homeIds = matchSheet.getRange(2, headerColumn_(matchSheet, 'ID équipe domicile'), rowCount, 1).getValues();
   const awayIds = matchSheet.getRange(2, headerColumn_(matchSheet, 'ID équipe visiteuse'), rowCount, 1).getValues();
+  const forfeitIds = matchSheet.getRange(2, headerColumn_(matchSheet, 'ID équipe forfait'), rowCount, 1).getValues();
   const winnerIds = matchSheet.getRange(2, headerColumn_(matchSheet, 'ID équipe gagnante'), rowCount, 1).getValues();
   const homeNames = [];
   const awayNames = [];
+  const forfeitNames = [];
   const winnerNames = [];
   for (let index = 0; index < rowCount; index += 1) {
     homeNames.push([matchTeamNameForId_(homeIds[index][0], teamLookup.byId)]);
     awayNames.push([matchTeamNameForId_(awayIds[index][0], teamLookup.byId)]);
+    forfeitNames.push([matchTeamNameForId_(forfeitIds[index][0], teamLookup.byId)]);
     winnerNames.push([matchTeamNameForId_(winnerIds[index][0], teamLookup.byId)]);
   }
   matchSheet.getRange(2, headerColumn_(matchSheet, 'Équipe domicile'), rowCount, 1).setValues(homeNames);
   matchSheet.getRange(2, headerColumn_(matchSheet, 'Équipe visiteuse'), rowCount, 1).setValues(awayNames);
+  matchSheet.getRange(2, headerColumn_(matchSheet, 'Équipe forfait'), rowCount, 1).setValues(forfeitNames);
   matchSheet.getRange(2, headerColumn_(matchSheet, 'Équipe gagnante'), rowCount, 1).setValues(winnerNames);
   return homeIds.filter(function(row, index) { return row[0] || awayIds[index][0]; }).length;
 }
@@ -84,6 +88,7 @@ function synchroniserSelectionsEquipesMatchs_(spreadsheet) {
     const hasTeams = [
       match['ID équipe domicile'], match['Équipe domicile'],
       match['ID équipe visiteuse'], match['Équipe visiteuse'],
+      match['ID équipe forfait'], match['Équipe forfait'],
       match['ID équipe gagnante'], match['Équipe gagnante']
     ].some(function(value) { return String(value || '').trim(); });
     if (!matchHasBusinessData_(match) || !hasTeams) return;
@@ -95,14 +100,28 @@ function synchroniserSelectionsEquipesMatchs_(spreadsheet) {
       };
       const home = resolveMatchTeamSelection_(context, match['ID équipe domicile'], match['Équipe domicile'], teamLookup);
       const away = resolveMatchTeamSelection_(context, match['ID équipe visiteuse'], match['Équipe visiteuse'], teamLookup);
-      const winner = isYes_(match['Résultat final'])
+      const forfeit = resolveMatchTeamSelection_(context, match['ID équipe forfait'], match['Équipe forfait'], teamLookup);
+      let winner = isYes_(match['Résultat final'])
         ? resolveMatchTeamSelection_(context, match['ID équipe gagnante'], match['Équipe gagnante'], teamLookup)
         : { id: '', name: '' };
       if (home.id && away.id && home.id === away.id) throw new Error('les équipes domicile et visiteuse doivent être différentes.');
+      if (forfeit.id && forfeit.id !== home.id && forfeit.id !== away.id) {
+        throw new Error('l’équipe forfait doit être l’une des deux équipes du match.');
+      }
       if (winner.id && winner.id !== home.id && winner.id !== away.id) {
         throw new Error('l’équipe gagnante doit être l’une des deux équipes du match.');
       }
-      updates.push({ row: match.__row, home: home, away: away, winner: winner });
+      let homeScore = match['Score domicile'];
+      let awayScore = match['Score visiteuse'];
+      let reason = match['Motif'];
+      if (forfeit.id) {
+        homeScore = forfeit.id === home.id ? 0 : 3;
+        awayScore = forfeit.id === away.id ? 0 : 3;
+        reason = 'Forfait';
+        if (isYes_(match['Résultat final'])) winner = forfeit.id === home.id ? away : home;
+      }
+      updates.push({ row: match.__row, home: home, away: away, forfeit: forfeit, winner: winner,
+        homeScore: homeScore, awayScore: awayScore, reason: reason });
     } catch (error) {
       errors.push('MATCHS, ligne ' + match.__row + ' : ' + (error.message || String(error)));
     }
@@ -178,6 +197,11 @@ function writeMatchTeamSelectionUpdates_(sheet, updates) {
     ['Équipe domicile', function(update) { return update.home.name; }],
     ['ID équipe visiteuse', function(update) { return update.away.id; }],
     ['Équipe visiteuse', function(update) { return update.away.name; }],
+    ['ID équipe forfait', function(update) { return update.forfeit.id; }],
+    ['Équipe forfait', function(update) { return update.forfeit.name; }],
+    ['Score domicile', function(update) { return update.homeScore; }],
+    ['Score visiteuse', function(update) { return update.awayScore; }],
+    ['Motif', function(update) { return update.reason; }],
     ['ID équipe gagnante', function(update) { return update.winner.id; }],
     ['Équipe gagnante', function(update) { return update.winner.name; }]
   ];

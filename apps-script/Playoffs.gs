@@ -195,6 +195,8 @@ function mettreAJourSeriesAutomatiques_() {
   const divisions = rowsAsObjects_(APP.sheets.divisions);
   const teams = rowsAsObjects_(APP.sheets.teams).filter(function(team) { return isActive_(team['Statut']); });
   const matches = rowsAsObjects_(APP.sheets.matches);
+  const disciplineIncidents = rowsAsObjects_(APP.sheets.discipline);
+  const drawDecisions = rowsAsObjects_(APP.sheets.tieBreakDraws);
   const tournamentIndex = {};
   const divisionIndex = {};
   const teamIndex = {};
@@ -217,7 +219,8 @@ function mettreAJourSeriesAutomatiques_() {
     const tournament = tournamentIndex[tournamentId];
     if (!tournament) throw new Error('Le tournoi de la division « ' + divisionId + ' » est introuvable.');
     if (!isActive_(tournament['Statut']) || !isYes_(division['Actif'])) return;
-    const plan = buildPlayoffUpdatePlan_(tournament, division, groups[divisionId], teams, matches, teamIndex);
+    const plan = buildPlayoffUpdatePlan_(tournament, division, groups[divisionId], teams, matches, teamIndex,
+      disciplineIncidents, drawDecisions);
     applyPlayoffUpdatePlan_(plan);
     result.created += plan.created.length;
     result.updated += plan.updated.length;
@@ -227,7 +230,7 @@ function mettreAJourSeriesAutomatiques_() {
   return result;
 }
 
-function buildPlayoffUpdatePlan_(tournament, division, formulaRows, teams, allMatches, teamIndex) {
+function buildPlayoffUpdatePlan_(tournament, division, formulaRows, teams, allMatches, teamIndex, disciplineIncidents, drawDecisions) {
   const tournamentId = String(tournament['ID tournoi'] || '').trim();
   const divisionId = String(division['ID division'] || '').trim();
   const qualifierCount = playoffInteger_(division['Équipes qualifiées'], 'Équipes qualifiées de « ' +
@@ -239,8 +242,12 @@ function buildPlayoffUpdatePlan_(tournament, division, formulaRows, teams, allMa
   const preliminaryComplete = poolMatches.length > 0 && poolMatches.every(function(match) {
     return isYes_(match['Résultat final']) && toNumber_(match['Score domicile'], null) !== null && toNumber_(match['Score visiteuse'], null) !== null;
   });
-  const standings = calculateStandings_(division, divisionTeams, poolMatches);
-  const rankings = playoffRankings_(division, standings);
+  const standings = calculateStandings_(division, divisionTeams, poolMatches, disciplineIncidents || [], drawDecisions || []);
+  if (preliminaryComplete && standings.some(function(row) { return row.tieBreakPending; })) {
+    throw new Error('Le classement de « ' + String(division['Nom'] || divisionId) +
+      ' » demeure parfaitement à égalité. Inscrivez le résultat du tirage dans TIRAGES_AU_SORT avant de générer les séries.');
+  }
+  const rankings = playoffRankings_(division, standings, poolMatches, drawDecisions || []);
   const existingByCode = {};
   divisionMatches.forEach(function(match) {
     const code = normalize_(match['Code série']);
@@ -402,7 +409,7 @@ function playoffInteger_(value, label, minimum, maximum) {
   return number;
 }
 
-function playoffRankings_(division, standings) {
+function playoffRankings_(division, standings, matches, drawDecisions) {
   const pools = {};
   standings.forEach(function(row) {
     const pool = normalize_(row.pool);
@@ -410,24 +417,8 @@ function playoffRankings_(division, standings) {
     pools[pool].push(row);
   });
   Object.keys(pools).forEach(function(pool) { pools[pool].sort(function(a, b) { return a.rank - b.rank; }); });
-  const overall = standings.slice().sort(function(a, b) { return comparePlayoffStandings_(division, a, b); });
+  const overall = rankStandingsForScope_(division, standings.slice(), matches || [], drawDecisions || [], '');
   return { pools: pools, overall: overall };
-}
-
-function comparePlayoffStandings_(division, a, b) {
-  const tieBreakers = String(division['Ordre bris égalité'] || 'POINTS,DIFF,BP,NOM').split(',').map(normalize_).filter(Boolean);
-  for (let index = 0; index < tieBreakers.length; index += 1) {
-    const rule = tieBreakers[index];
-    let difference = 0;
-    if (rule === 'POINTS' || rule === 'PTS') difference = b.points - a.points;
-    else if (rule === 'DIFF' || rule === 'DIFFERENCE') difference = b.difference - a.difference;
-    else if (rule === 'BP' || rule === 'BUTS POUR') difference = b.goalsFor - a.goalsFor;
-    else if (rule === 'BC' || rule === 'BUTS CONTRE') difference = a.goalsAgainst - b.goalsAgainst;
-    else if (rule === 'V' || rule === 'VICTOIRES') difference = b.wins - a.wins;
-    else if (rule === 'NOM') difference = a.teamName.localeCompare(b.teamName, 'fr');
-    if (difference) return difference;
-  }
-  return a.teamName.localeCompare(b.teamName, 'fr');
 }
 
 function resolvePlayoffSource_(source, preliminaryComplete, rankings, currentByCode, teamIndex) {
@@ -460,6 +451,9 @@ function playoffMatchWinner_(match, teamIndex, code) {
   else {
     if (selectedId !== homeId && selectedId !== awayId) {
       throw new Error('MATCHS « ' + code + ' » : sélectionnez l’équipe gagnante après une égalité.');
+    }
+    if (!isYes_(match['Victoire aux tirs au but'])) {
+      throw new Error('MATCHS « ' + code + ' » : cochez « Victoire aux tirs au but » après une égalité.');
     }
     winnerId = selectedId;
   }

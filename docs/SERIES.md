@@ -73,9 +73,17 @@ Avant que tous les matchs de pools soient finaux, les matchs éliminatoires peuv
 Après un résultat éliminatoire final :
 
 - si les scores sont différents, le gagnant est déterminé automatiquement;
-- si les scores sont égaux après la procédure sportive prévue, l’administrateur sélectionne `Équipe gagnante` dans `MATCHS`;
+- si les scores sont égaux après les trois tirs au but puis, au besoin, la mort subite, l’administrateur sélectionne `Équipe gagnante` et coche `Victoire aux tirs au but` dans `MATCHS`;
 - la prochaine publication place automatiquement le gagnant dans le match suivant;
 - le gagnant de la finale devient automatiquement le champion public.
+
+La case ne sert pas à inscrire chaque tir. Elle confirme seulement que l’égalité au score réglementaire a été départagée selon la procédure prévue. La publication refuse une équipe gagnante avec un score égal si cette case n’est pas cochée, et refuse aussi la case sur un match de pool ou un score non égal.
+
+## Égalité complète au classement
+
+Le classement applique les critères configurés jusqu’au fair-play. Si plusieurs équipes demeurent parfaitement à égalité une fois tous leurs matchs de pool terminés, la génération des séries est bloquée afin de ne pas choisir arbitrairement un qualifié.
+
+L’administrateur effectue alors le tirage au sort prévu par le règlement et inscrit une ligne active par équipe concernée dans `TIRAGES_AU_SORT`. Une priorité plus petite est mieux classée : `1` précède `2`, puis `3`. Les priorités doivent être uniques pour le tournoi, la division et le pool concernés. La publication reprend ensuite automatiquement le classement et les séries.
 
 Les colonnes `Date`, `Heure` et `Lieu` des matchs créés restent modifiables. Elles sont laissées vides au départ afin que les administrateurs puissent réserver les créneaux appropriés.
 

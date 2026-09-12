@@ -1,6 +1,7 @@
 (function () {
   'use strict';
-  const state = { data: null, tournamentId: '', divisionId: 'all', teamId: 'all', matchStatus: 'all', photoLimit: 12 };
+  const state = { data: null, tournamentId: '', divisionId: 'all', teamId: 'all', venueId: 'all', matchStatus: 'all',
+    photoLimit: 12, refreshTimer: null, refreshInFlight: false };
   const playoffPhaseOrder = ['ÉLIMINATOIRE', 'QUART-DE-FINALE', 'DEMI-FINALE', 'FINALE'];
   const elements = {};
   if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', init);
@@ -12,6 +13,7 @@
       if (!state.data.tournoi.length) throw new Error('Aucun tournoi public n’a été trouvé.');
       state.tournamentId = state.data.tournoi[0].id;
       populateFilters(); render();
+      startAutomaticRefresh();
     } catch (error) {
       showStatus('Impossible de charger les données du tournoi. ' + error.message, true);
       elements.publicationDate.textContent = 'Données indisponibles';
@@ -20,7 +22,7 @@
 
   function cacheElements() {
     ['tournament-name','tournament-details','publication-date','registration-link','status','tournament-filter','division-filter','team-filter',
-      'match-status-filter','summary-cards','upcoming-matches','matches','champions-content','playoffs-content','standings-content','teams-content',
+      'venue-filter','match-status-filter','summary-cards','upcoming-matches','matches','champions-content','playoffs-content','standings-content','teams-content',
       'photos-content','photos-load-more','photo-dialog','photo-dialog-close','photo-dialog-image','photo-dialog-title','photo-dialog-details'].forEach(function (id) {
       elements[toCamel(id)] = document.getElementById(id);
     });
@@ -37,12 +39,13 @@
 
   function bindEvents() {
     elements.tournamentFilter.addEventListener('change', function (event) {
-      state.tournamentId = event.target.value; state.divisionId = 'all'; state.teamId = 'all'; resetPhotoLimit(); populateFilters(); render();
+      state.tournamentId = event.target.value; state.divisionId = 'all'; state.teamId = 'all'; state.venueId = 'all'; resetPhotoLimit(); populateFilters(); render();
     });
     elements.divisionFilter.addEventListener('change', function (event) {
       state.divisionId = event.target.value; state.teamId = 'all'; resetPhotoLimit(); populateTeamFilter(); render();
     });
     elements.teamFilter.addEventListener('change', function (event) { state.teamId = event.target.value; resetPhotoLimit(); render(); });
+    elements.venueFilter.addEventListener('change', function (event) { state.venueId = event.target.value; renderMatches(); renderSummary(); });
     elements.matchStatusFilter.addEventListener('change', function (event) { state.matchStatus = event.target.value; renderMatches(); });
     elements.photosLoadMore.addEventListener('click', function () { state.photoLimit += 12; renderPhotos(); });
     elements.photoDialogClose.addEventListener('click', closePhotoDialog);
@@ -57,6 +60,50 @@
         button.classList.add('is-active'); document.getElementById(button.dataset.tab).classList.add('is-active');
       });
     });
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) refreshPublicData(); });
+  }
+
+  function startAutomaticRefresh() {
+    const configured = Number((window.TOURNAMENT_CONFIG || {}).REFRESH_INTERVAL_MS);
+    const interval = Number.isFinite(configured) && configured > 0 ? Math.max(configured, 30000) : 0;
+    if (!interval) return;
+    if (state.refreshTimer) clearInterval(state.refreshTimer);
+    state.refreshTimer = setInterval(refreshPublicData, interval);
+  }
+
+  async function refreshPublicData() {
+    if (state.refreshInFlight || document.hidden) return;
+    state.refreshInFlight = true;
+    try {
+      const refreshed = await loadData();
+      const previousVersion = state.data && state.data.publication && state.data.publication.publishedAt;
+      const nextVersion = refreshed.publication && refreshed.publication.publishedAt;
+      if (nextVersion && nextVersion !== previousVersion) {
+        state.data = refreshed;
+        preserveValidFilterSelections();
+        populateFilters();
+        render();
+      }
+    } catch (error) {
+      // Conserver le dernier instantané valide; la prochaine vérification réessaiera silencieusement.
+    } finally {
+      state.refreshInFlight = false;
+    }
+  }
+
+  function preserveValidFilterSelections() {
+    if (!state.data.tournoi.some(function (item) { return item.id === state.tournamentId; })) {
+      state.tournamentId = state.data.tournoi.length ? state.data.tournoi[0].id : '';
+    }
+    if (state.divisionId !== 'all' && !state.data.division.some(function (item) {
+      return item.id === state.divisionId && item.tournamentId === state.tournamentId;
+    })) state.divisionId = 'all';
+    if (state.teamId !== 'all' && !state.data.equipe.some(function (item) {
+      return item.id === state.teamId && item.tournamentId === state.tournamentId;
+    })) state.teamId = 'all';
+    if (state.venueId !== 'all' && !state.data.lieu.some(function (item) {
+      return item.id === state.venueId && item.tournamentId === state.tournamentId;
+    })) state.venueId = 'all';
   }
 
   async function loadData() {
@@ -93,6 +140,7 @@
   function populateFilters() {
     fillSelect(elements.tournamentFilter, state.data.tournoi, state.tournamentId, false, 'Tous les tournois');
     fillSelect(elements.divisionFilter, state.data.division.filter(function (item) { return item.tournamentId === state.tournamentId; }), state.divisionId, true, 'Toutes les divisions');
+    fillSelect(elements.venueFilter, state.data.lieu.filter(function (item) { return item.tournamentId === state.tournamentId; }), state.venueId, true, 'Tous les gymnases');
     populateTeamFilter();
   }
 
@@ -132,7 +180,8 @@
     return state.data.match.filter(function (match) {
       const teamMatch = state.teamId === 'all' || match.homeTeamId === state.teamId || match.awayTeamId === state.teamId;
       const statusMatch = ignoreStatus || state.matchStatus === 'all' || (state.matchStatus === 'final' ? match.final : !match.final);
-      return match.tournamentId === state.tournamentId && (state.divisionId === 'all' || match.divisionId === state.divisionId) && teamMatch && statusMatch;
+      const venueMatch = state.venueId === 'all' || match.venueId === state.venueId;
+      return match.tournamentId === state.tournamentId && (state.divisionId === 'all' || match.divisionId === state.divisionId) && teamMatch && venueMatch && statusMatch;
     }).sort(compareMatches);
   }
 
@@ -163,10 +212,24 @@
       const division = divisionIndex[match.divisionId] || { name: '' };
       const venue = venueIndex[match.venueId] || { name: '' };
       const status = match.final ? '<span class="badge">Final</span>' : escapeHtml(match.time || 'Heure à confirmer');
+      const decision = matchDecisionLabel(match, teamIndex);
       return '<article class="match-card"><div class="match-card__meta"><span>' + escapeHtml(formatDate(match.date)) + '</span><span>' + status + '</span></div>' +
         '<div class="match-card__body">' + matchTeam(home.name,match.final ? match.homeScore : '–') + matchTeam(away.name,match.final ? match.awayScore : '–') + '</div>' +
-        '<div class="match-card__footer">' + escapeHtml([division.name,match.pool ? 'Pool ' + match.pool : '',venue.name].filter(Boolean).join(' · ')) + '</div></article>';
+        '<div class="match-card__footer">' + escapeHtml([division.name,match.pool ? 'Pool ' + match.pool : '',venue.name,decision].filter(Boolean).join(' · ')) + '</div></article>';
     }).join('');
+  }
+
+  function matchDecisionLabel(match, teamIndex) {
+    if (!match || !match.final) return '';
+    if (match.penaltyShootout) {
+      const winner = teamIndex[match.winnerTeamId];
+      return 'Victoire' + (winner ? ' ' + winner.name : '') + ' aux tirs au but';
+    }
+    if (match.forfeitTeamId) {
+      const forfeiting = teamIndex[match.forfeitTeamId];
+      return 'Forfait' + (forfeiting ? ' — ' + forfeiting.name : '');
+    }
+    return match.reason || '';
   }
 
   function matchTeam(name, score) { return '<div class="match-team"><span>' + escapeHtml(name) + '</span><strong class="score">' + escapeHtml(score) + '</strong></div>'; }
@@ -242,8 +305,11 @@
       unique(rows.map(function (row) { return row.pool || ''; })).forEach(function (pool) {
         const poolRows = rows.filter(function (row) { return (row.pool || '') === pool; });
         if (!poolRows.length) return;
-        blocks.push('<article class="standing-block"><h3>' + escapeHtml(division.name + (pool ? ' — Pool ' + pool : '')) + '</h3><div class="table-scroll"><table><thead><tr>' +
-          '<th>Rang</th><th>Équipe</th><th>PJ</th><th>V</th><th>N</th><th>D</th><th>BP</th><th>BC</th><th>Diff</th><th>Pts</th></tr></thead><tbody>' +
+        const pendingNote = poolRows.some(function (row) { return row.tieBreakPending; })
+          ? '<p class="standing-note">* Égalité parfaite : tirage au sort administratif requis.</p>'
+          : '';
+        blocks.push('<article class="standing-block"><h3>' + escapeHtml(division.name + (pool ? ' — Pool ' + pool : '')) + '</h3>' + pendingNote + '<div class="table-scroll"><table><thead><tr>' +
+          '<th>Rang</th><th>Équipe</th><th>PJ</th><th>V</th><th>N</th><th>D</th><th>BP</th><th>BC</th><th>Diff</th><th>FP</th><th>Pts</th></tr></thead><tbody>' +
           poolRows.map(standingRow).join('') + '</tbody></table></div></article>');
       });
     });
@@ -251,7 +317,11 @@
   }
 
   function standingRow(row) {
-    return '<tr><td>' + row.rank + '</td><td>' + escapeHtml(row.teamName) + '</td><td>' + row.played + '</td><td>' + row.wins + '</td><td>' + row.draws + '</td><td>' + row.losses + '</td><td>' + row.goalsFor + '</td><td>' + row.goalsAgainst + '</td><td>' + signed(row.difference) + '</td><td><strong>' + row.points + '</strong></td></tr>';
+    const rank = row.tieBreakPending ? row.rank + ' *' : row.rank;
+    const differenceTitle = row.tieBreakDifference !== row.difference
+      ? ' title="Différence utilisée pour le bris d’égalité : ' + escapeHtml(signed(row.tieBreakDifference)) + '"'
+      : '';
+    return '<tr><td>' + rank + '</td><td>' + escapeHtml(row.teamName) + '</td><td>' + row.played + '</td><td>' + row.wins + '</td><td>' + row.draws + '</td><td>' + row.losses + '</td><td>' + row.goalsFor + '</td><td>' + row.goalsAgainst + '</td><td' + differenceTitle + '>' + signed(row.difference) + '</td><td>' + (row.fairPlayPoints || 0) + '</td><td><strong>' + row.points + '</strong></td></tr>';
   }
 
   function renderTeams() {

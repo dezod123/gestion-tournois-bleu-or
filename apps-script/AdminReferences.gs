@@ -19,6 +19,17 @@ function adminReferenceSheetSpecs_() {
       adminReference_('division', 'ID division', 'Division'),
       adminReference_('venue', 'ID lieu', 'Lieu')
     ] },
+    { sheet: APP.sheets.discipline, references: [
+      adminReference_('tournament', 'ID tournoi', 'Tournoi'),
+      adminReference_('division', 'ID division', 'Division'),
+      adminReference_('match', 'ID match', 'Match'),
+      adminReference_('team', 'ID équipe', 'Équipe')
+    ] },
+    { sheet: APP.sheets.tieBreakDraws, references: [
+      adminReference_('tournament', 'ID tournoi', 'Tournoi'),
+      adminReference_('division', 'ID division', 'Division'),
+      adminReference_('team', 'ID équipe', 'Équipe')
+    ] },
     { sheet: APP.sheets.playoffFormulas, references: [
       adminReference_('tournament', 'ID tournoi', 'Tournoi'),
       adminReference_('division', 'ID division', 'Division')
@@ -76,7 +87,8 @@ function synchroniserReferencesAdministratives_(spreadsheet) {
     rowsAsObjects_(APP.sheets.tournaments),
     rowsAsObjects_(APP.sheets.divisions),
     rowsAsObjects_(APP.sheets.venues),
-    rowsAsObjects_(APP.sheets.teams)
+    rowsAsObjects_(APP.sheets.teams),
+    rowsAsObjects_(APP.sheets.matches)
   );
   const sheetPlans = [];
   const errors = [];
@@ -152,7 +164,8 @@ function refreshAdminReferenceLabelsFromIds_(spreadsheet) {
     rowsAsObjects_(APP.sheets.tournaments),
     rowsAsObjects_(APP.sheets.divisions),
     rowsAsObjects_(APP.sheets.venues),
-    rowsAsObjects_(APP.sheets.teams)
+    rowsAsObjects_(APP.sheets.teams),
+    rowsAsObjects_(APP.sheets.matches)
   );
   let updated = 0;
   adminReferenceSheetSpecs_().forEach(function(spec) {
@@ -200,7 +213,8 @@ function applyAdminReferenceDisplayValidations_(spreadsheet) {
     rowsAsObjects_(APP.sheets.tournaments),
     rowsAsObjects_(APP.sheets.divisions),
     rowsAsObjects_(APP.sheets.venues),
-    rowsAsObjects_(APP.sheets.teams)
+    rowsAsObjects_(APP.sheets.teams),
+    rowsAsObjects_(APP.sheets.matches)
   );
   adminReferenceSheetSpecs_().forEach(function(spec) {
     const sheet = spreadsheet.getSheetByName(spec.sheet);
@@ -240,7 +254,7 @@ function adminReferenceProtectedColumns_() {
   return columns;
 }
 
-function buildAdminReferenceLookups_(tournaments, divisions, venues, teams) {
+function buildAdminReferenceLookups_(tournaments, divisions, venues, teams, matches) {
   return {
     tournament: buildAdminReferenceLookup_(tournaments, 'ID tournoi', function(row) {
       return tournamentSelectionLabel_(row);
@@ -253,8 +267,33 @@ function buildAdminReferenceLookups_(tournaments, divisions, venues, teams) {
     }, 'ID tournoi'),
     team: buildAdminReferenceLookup_(teams, 'ID équipe', function(row) {
       return String(row['Nom'] || '').trim();
+    }, 'ID tournoi', 'ID division'),
+    match: buildAdminReferenceLookup_(matches || [], 'ID match', function(row) {
+      return adminMatchSelectionLabel_(row);
     }, 'ID tournoi', 'ID division')
   };
+}
+
+function adminMatchSelectionLabel_(match) {
+  const date = adminMatchDateLabel_(match['Date']);
+  const time = adminMatchTimeLabel_(match['Heure']);
+  const home = String(match['Équipe domicile'] || match['Source domicile'] || '').trim();
+  const away = String(match['Équipe visiteuse'] || match['Source visiteuse'] || '').trim();
+  const teams = home && away ? home + ' c. ' + away : (home || away);
+  const phase = String(match['Ronde'] || match['Phase'] || '').trim();
+  const label = [[date, time].filter(Boolean).join(' '), teams, phase].filter(Boolean).join(' — ');
+  return label || String(match['ID match'] || '').trim();
+}
+
+function adminMatchDateLabel_(value) {
+  if (!(value instanceof Date) || isNaN(value.getTime())) return String(value || '').trim();
+  return [value.getFullYear(), String(value.getMonth() + 1).padStart(2, '0'),
+    String(value.getDate()).padStart(2, '0')].join('-');
+}
+
+function adminMatchTimeLabel_(value) {
+  if (!(value instanceof Date) || isNaN(value.getTime())) return String(value || '').trim();
+  return [String(value.getHours()).padStart(2, '0'), String(value.getMinutes()).padStart(2, '0')].join(':');
 }
 
 function buildAdminReferenceLookup_(rows, idHeader, labelBuilder, tournamentHeader, divisionHeader) {
@@ -298,7 +337,7 @@ function resolveAdminReferenceSelection_(kind, idValue, labelValue, lookups, con
   if (kind !== 'tournament' && !context.tournamentId) {
     throw new Error('sélectionnez d’abord le tournoi.');
   }
-  if (kind === 'team' && !context.divisionId) {
+  if ((kind === 'team' || kind === 'match') && !context.divisionId) {
     throw new Error('sélectionnez d’abord la division.');
   }
   const candidates = lookup.all.filter(function(entry) {
@@ -330,16 +369,16 @@ function adminReferenceForId_(kind, idValue, lookups) {
 
 function adminReferenceFitsContext_(entry, kind, context) {
   if (kind !== 'tournament' && context.tournamentId && entry.tournamentId !== context.tournamentId) return false;
-  if (kind === 'team' && context.divisionId && entry.divisionId !== context.divisionId) return false;
+  if ((kind === 'team' || kind === 'match') && context.divisionId && entry.divisionId !== context.divisionId) return false;
   return true;
 }
 
 function adminReferenceKindLabel_(kind) {
-  return { tournament: 'tournoi', division: 'division', venue: 'lieu', team: 'équipe' }[kind] || 'choix';
+  return { tournament: 'tournoi', division: 'division', venue: 'lieu', team: 'équipe', match: 'match' }[kind] || 'choix';
 }
 
 function adminReferenceKindPluralLabel_(kind) {
-  return { tournament: 'tournois', division: 'divisions', venue: 'lieux', team: 'équipes' }[kind] || 'choix';
+  return { tournament: 'tournois', division: 'divisions', venue: 'lieux', team: 'équipes', match: 'matchs' }[kind] || 'choix';
 }
 
 function uniqueAdminReferenceLabels_(entries) {

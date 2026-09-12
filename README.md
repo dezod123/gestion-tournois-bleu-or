@@ -15,7 +15,7 @@ Classeur séparé DONNEES_PUBLIQUES, publié en lecture seule
 Site statique GitHub Pages
 ```
 
-La saisie et les corrections dans Google Sheets ne déclenchent aucun script. Une publication explicite valide les données, recalcule les classements et remplace le dernier instantané public.
+La saisie et les corrections dans Google Sheets ne déclenchent aucun script. Une publication explicite valide les données, recalcule les classements et remplace le dernier instantané public. Les pages déjà ouvertes vérifient ensuite ce CSV toutes les 60 secondes, sans exécuter Apps Script.
 
 ## Contenu du dépôt
 
@@ -40,5 +40,7 @@ Un Google Form distinct peut être généré automatiquement pour chaque tournoi
 Les administrateurs peuvent publier une sélection de photos hébergées dans leur propre Google Drive. La procédure et les règles de confidentialité sont décrites dans [`docs/PHOTOS.md`](docs/PHOTOS.md).
 
 Les formules de qualification peuvent être configurées séparément pour chaque division, y compris avec un nombre impair d’équipes ou des exemptions. Voir [`docs/SERIES.md`](docs/SERIES.md).
+
+Les règles de pointage, le face-à-face, la différence de buts plafonnée, le fair-play, les forfaits et les tirs au but sont décrits dans [`docs/REGLEMENTS_ET_CLASSEMENT.md`](docs/REGLEMENTS_ET_CLASSEMENT.md).
 
 Pendant le développement, le site fonctionne avec les données d'exemple incluses et peut être lancé avec n'importe quel serveur HTTP statique.

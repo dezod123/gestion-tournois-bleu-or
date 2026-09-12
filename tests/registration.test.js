@@ -54,6 +54,10 @@ assert.equal(context.registrationIsOpen_(tournament, '2026-09-07'), true);
 assert.equal(context.registrationIsOpen_(tournament, '2026-09-19'), false);
 assert.equal(context.registrationIsOpen_({ ...tournament, 'Inscriptions ouvertes': false }, '2026-09-07'), false);
 assert.match(context.registrationFormDescription_(tournament, 'America/Toronto'), /350,00 \$ par équipe/);
+assert.match(context.registrationFormDescription_(tournament, 'America/Toronto', [
+  { name: 'Atome masculin', fee: 350 }, { name: 'Benjamin féminin', fee: 375 }
+]), /Benjamin féminin : 375,00 \$/);
+assert.match(context.registrationDivisionHelpText_([{ name: 'Atome masculin', fee: 350 }]), /350,00 \$/);
 
 assert.equal(context.normalizePostalCode_('h1h-1h1'), 'H1H 1H1');
 assert.throws(() => context.normalizePostalCode_('D1A 1A1'), /format A1A 1A1/);

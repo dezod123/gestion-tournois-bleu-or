@@ -23,6 +23,8 @@
 | `EQUIPES` | Équipes approuvées et affectation aux pools | Champs sélectionnés |
 | `MATCHS` | Horaire, scores finaux, sélection nominale des équipes et IDs techniques | Champs sélectionnés |
 | `FORMULES_SERIES` | Placement configurable des qualifiés et progression entre les rondes | Non |
+| `DISCIPLINE` | Sanctions servant au classement fair-play | Non |
+| `TIRAGES_AU_SORT` | Ordre administratif des équipes encore parfaitement à égalité | Non |
 | `PHOTOS` | Références approuvées vers Google Drive | Champs sélectionnés |
 | `JOURNAL_PUBLICATION` | Historique des publications | Non |
 
@@ -51,6 +53,8 @@ Les types V1 sont `meta`, `tournoi`, `division`, `lieu`, `equipe`, `match`, `cla
 
 Si une erreur bloquante existe, l'instantané précédent demeure intact.
 
+Le site public vérifie ensuite l’URL CSV toutes les 60 secondes lorsqu’un onglet est visible. Cette lecture est faite directement par le navigateur et n’exécute pas Apps Script. Une page masquée cesse de vérifier; une erreur temporaire conserve le dernier instantané valide; l’interface n’est reconstruite que lorsque la date `publishedAt` change. Le délai réel peut être plus long si Google met en cache la version publiée.
+
 ## Inscriptions
 
 Chaque tournoi peut posséder un Google Form généré depuis sa configuration. Une réponse correspond à une équipe et est conservée dans un onglet brut privé. L'ouverture ou la soumission du formulaire n'exécute pas notre Apps Script.
@@ -64,5 +68,7 @@ Les identifiants techniques sont produits par Apps Script et ne doivent pas êtr
 Chaque référence administrative conserve une paire `ID technique | libellé lisible`. L'administrateur choisit le libellé; une synchronisation résout et valide l'identifiant en tenant compte du tournoi et, lorsque requis, de la division. Cette séparation permet de renommer un objet sans casser les matchs ou les inscriptions qui le référencent.
 
 La durée par défaut est configurée dans `TOURNOIS`. Une valeur facultative dans `DIVISIONS` permet de la remplacer pour une catégorie précise. `PLAGES_HORAIRES` décrit les heures réellement disponibles par date et par lieu, y compris une pause facultative. Ces données demeurent privées et alimentent le générateur de matchs de poules; l’horaire produit reste modifiable dans `MATCHS` avant sa publication.
+
+Les classements utilisent un moteur unique pour l’affichage public et la qualification en séries. Il applique le face-à-face, la différence plafonnée, les buts, le fair-play provenant de `DISCIPLINE`, puis les priorités de `TIRAGES_AU_SORT`. Cette source unique évite qu’un tableau public et une qualification donnent des ordres différents.
 
 `FORMULES_SERIES` forme un graphe ordonné de sources de classement et de gagnants. Cette représentation permet les croisements entre pools, les exemptions et un nombre variable de qualifiés sans coder une formule particulière dans le site public. La publication met ce graphe à jour avant de construire l’instantané.

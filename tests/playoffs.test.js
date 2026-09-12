@@ -67,6 +67,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(context.playoffMatchWinner_({
   'ID équipe visiteuse': 'E2',
   'Score domicile': 2,
   'Score visiteuse': 2,
+  'Victoire aux tirs au but': true,
   'ID équipe gagnante': 'E2'
 }, winnerTeamIndex, 'SF1'))), { id: 'E2', name: 'Lynx' });
 assert.throws(() => context.playoffMatchWinner_({

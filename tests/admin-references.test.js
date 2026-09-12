@@ -24,6 +24,13 @@ const headers = JSON.parse(vm.runInContext('JSON.stringify(APP.headers)', contex
   ['MATCHS', 'ID tournoi', 'Tournoi'],
   ['MATCHS', 'ID division', 'Division'],
   ['MATCHS', 'ID lieu', 'Lieu'],
+  ['DISCIPLINE', 'ID tournoi', 'Tournoi'],
+  ['DISCIPLINE', 'ID division', 'Division'],
+  ['DISCIPLINE', 'ID match', 'Match'],
+  ['DISCIPLINE', 'ID équipe', 'Équipe'],
+  ['TIRAGES_AU_SORT', 'ID tournoi', 'Tournoi'],
+  ['TIRAGES_AU_SORT', 'ID division', 'Division'],
+  ['TIRAGES_AU_SORT', 'ID équipe', 'Équipe'],
   ['FORMULES_SERIES', 'ID tournoi', 'Tournoi'],
   ['FORMULES_SERIES', 'ID division', 'Division'],
   ['PHOTOS', 'ID tournoi', 'Tournoi'],
@@ -49,6 +56,10 @@ const lookups = context.buildAdminReferenceLookups_(
   [
     { 'ID équipe': 'E1', 'ID tournoi': 'T1', 'ID division': 'D1', Nom: 'Les Aigles' },
     { 'ID équipe': 'E2', 'ID tournoi': 'T2', 'ID division': 'D2', Nom: 'Les Aigles' }
+  ],
+  [
+    { 'ID match': 'M1', 'ID tournoi': 'T1', 'ID division': 'D1', Date: '2026-10-09',
+      Heure: '09:00', 'Équipe domicile': 'Les Aigles', 'Équipe visiteuse': 'Les Lions', Ronde: 'Ronde 1' }
   ]
 );
 
@@ -67,6 +78,13 @@ assert.deepEqual(
 assert.deepEqual(
   JSON.parse(JSON.stringify(context.resolveAdminReferenceSelection_('team', '', 'Les Aigles', lookups, { tournamentId: 'T1', divisionId: 'D1' }))),
   { id: 'E1', label: 'Les Aigles' }
+);
+assert.deepEqual(
+  JSON.parse(JSON.stringify(context.resolveAdminReferenceSelection_(
+    'match', '', '2026-10-09 09:00 — Les Aigles c. Les Lions — Ronde 1', lookups,
+    { tournamentId: 'T1', divisionId: 'D1' }
+  ))),
+  { id: 'M1', label: '2026-10-09 09:00 — Les Aigles c. Les Lions — Ronde 1' }
 );
 assert.deepEqual(
   JSON.parse(JSON.stringify(context.resolveAdminReferenceSelection_('division', 'D1', 'Ancien nom', lookups, { tournamentId: 'T1' }))),

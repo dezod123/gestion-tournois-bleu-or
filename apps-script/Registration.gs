@@ -141,7 +141,10 @@ function registrationFormConfig_(tournament) {
   }).map(function(division) {
     return {
       id: cleanText_(division['ID division'], 80, true, 'ID division'),
-      name: cleanText_(division['Nom'], 140, true, 'Nom de division')
+      name: cleanText_(division['Nom'], 140, true, 'Nom de division'),
+      fee: division['Frais inscription'] === '' || division['Frais inscription'] == null
+        ? tournament['Frais inscription']
+        : division['Frais inscription']
     };
   });
   if (!divisions.length) throw new Error('Ajoutez au moins une division active avant de créer le formulaire.');
@@ -158,7 +161,7 @@ function configureRegistrationForm_(form, tournament, divisions) {
   const timeZone = String(setting_('FUSEAU_HORAIRE', Session.getScriptTimeZone()));
   const today = Utilities.formatDate(new Date(), timeZone, 'yyyy-MM-dd');
   form.setTitle(registrationFormTitle_(tournament));
-  form.setDescription(registrationFormDescription_(tournament, timeZone));
+  form.setDescription(registrationFormDescription_(tournament, timeZone, divisions));
   form.setConfirmationMessage('Votre inscription a été reçue et sera vérifiée par l’organisation. Utilisez le lien proposé pour inscrire une autre équipe.');
   form.setCollectEmail(false);
   form.setPublishingSummary(false);
@@ -185,7 +188,7 @@ function configureRegistrationForm_(form, tournament, divisions) {
     FormApp.createTextValidation().setHelpText('Entrez une adresse courriel complète, par exemple nom@ecole.ca.')
       .requireTextIsEmail().build());
   upsertRegistrationListItem_(form, REGISTRATION_FORM_FIELDS.division,
-    'Sélectionnez la catégorie de cette équipe.', divisions.map(function(division) { return division.name; }));
+    registrationDivisionHelpText_(divisions), divisions.map(function(division) { return division.name; }));
   upsertRegistrationConsentItem_(form);
 }
 
@@ -233,21 +236,36 @@ function registrationTournamentLabel_(tournament) {
   return [String(tournament['Nom'] || '').trim(), String(tournament['Édition'] || '').trim()].filter(Boolean).join(' — ') || 'Tournoi sans nom';
 }
 
-function registrationFormDescription_(tournament, timeZone) {
+function registrationFormDescription_(tournament, timeZone, divisions) {
   const lines = ['Une soumission correspond à une seule équipe. Les inscriptions doivent être approuvées par l’organisation.'];
   const startDate = toIsoDate_(tournament['Date début'], timeZone);
   const endDate = toIsoDate_(tournament['Date fin'], timeZone);
   const deadline = toIsoDate_(tournament['Date limite inscription'], timeZone);
   if (startDate) lines.push('Dates du tournoi : ' + (endDate && endDate !== startDate ? startDate + ' au ' + endDate : startDate));
   if (deadline) lines.push('Date limite d’inscription : ' + deadline);
-  const fee = formatRegistrationFee_(tournament['Frais inscription']);
-  if (fee) lines.push('Frais d’inscription : ' + fee + ' par équipe');
+  const divisionFees = (divisions || []).filter(function(division) { return formatRegistrationFee_(division.fee); });
+  if (divisionFees.length) {
+    lines.push('Frais d’inscription par équipe :\n' + divisionFees.map(function(division) {
+      return division.name + ' : ' + formatRegistrationFee_(division.fee);
+    }).join('\n'));
+  } else {
+    const fee = formatRegistrationFee_(tournament['Frais inscription']);
+    if (fee) lines.push('Frais d’inscription : ' + fee + ' par équipe');
+  }
   const payment = String(tournament['Instructions paiement'] || '').trim();
   if (payment) lines.push('Paiement : ' + payment);
   const contact = String(tournament['Courriel contact inscriptions'] || '').trim();
   if (contact) lines.push('Questions : ' + contact);
   lines.push('Les coordonnées fournies demeurent dans l’environnement administratif privé du tournoi.');
   return lines.join('\n\n');
+}
+
+function registrationDivisionHelpText_(divisions) {
+  const fees = (divisions || []).filter(function(division) { return formatRegistrationFee_(division.fee); });
+  if (!fees.length) return 'Sélectionnez la catégorie de cette équipe.';
+  return 'Sélectionnez la catégorie de cette équipe. Frais par équipe :\n' + fees.map(function(division) {
+    return division.name + ' : ' + formatRegistrationFee_(division.fee);
+  }).join('\n');
 }
 
 function registrationIsOpen_(tournament, todayIso) {

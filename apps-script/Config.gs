@@ -1,5 +1,5 @@
 const APP = Object.freeze({
-  version: '0.12.0',
+  version: '0.13.0',
   locale: 'fr-CA',
   sheets: Object.freeze({
     settings: 'PARAMETRES',
@@ -10,6 +10,8 @@ const APP = Object.freeze({
     registrations: 'INSCRIPTIONS',
     teams: 'EQUIPES',
     matches: 'MATCHS',
+    discipline: 'DISCIPLINE',
+    tieBreakDraws: 'TIRAGES_AU_SORT',
     playoffFormulas: 'FORMULES_SERIES',
     photos: 'PHOTOS',
     publicData: 'DONNEES_PUBLIQUES',
@@ -24,12 +26,14 @@ const APP = Object.freeze({
   headers: Object.freeze({
     PARAMETRES: ['Clé', 'Valeur', 'Description'],
     TOURNOIS: ['ID tournoi', 'Nom', 'Édition', 'Statut', 'Afficher', 'Date début', 'Date fin', 'Lieu principal', 'Description publique', 'Durée match par défaut (minutes)', 'Inscriptions ouvertes', 'Date limite inscription', 'Frais inscription', 'Instructions paiement', 'Courriel contact inscriptions', 'ID formulaire inscription', 'URL formulaire inscription', 'URL modification formulaire', 'Dernière mise à jour formulaire'],
-    DIVISIONS: ['ID division', 'ID tournoi', 'Tournoi', 'Nom', 'Actif', 'Afficher', 'Nombre de pools', 'Matchs entre équipes', 'Équipes qualifiées', 'Points victoire', 'Points nul', 'Points défaite', 'Ordre bris égalité', 'Durée match (minutes)'],
+    DIVISIONS: ['ID division', 'ID tournoi', 'Tournoi', 'Nom', 'Actif', 'Afficher', 'Nombre de pools', 'Matchs entre équipes', 'Minimum matchs garantis', 'Équipes qualifiées', 'Points victoire', 'Points nul', 'Points défaite', 'Ordre bris égalité', 'Plafond différence par match', 'Points carton jaune', 'Points deuxième jaune', 'Points carton rouge', 'Durée match (minutes)', 'Repos minimal (minutes)', 'Frais inscription'],
     LIEUX: ['ID lieu', 'ID tournoi', 'Tournoi', 'Nom', 'Adresse publique', 'Actif', 'Afficher'],
     PLAGES_HORAIRES: ['ID plage', 'ID tournoi', 'Tournoi', 'ID lieu', 'Lieu', 'Date', 'Heure début', 'Heure fin', 'Pause début', 'Pause fin', 'Actif', 'Notes'],
     INSCRIPTIONS: ['ID inscription', 'Horodatage', 'ID tournoi', 'Tournoi', 'Nom équipe', 'École', 'Adresse', 'Ville', 'Code postal', 'Responsable', 'Téléphone', 'Courriel', 'ID division', 'Division', 'Nombre équipes', 'Statut', 'Notes internes', 'ID soumission', 'Date traitement', 'Compte traitement', 'ID réponse formulaire'],
     EQUIPES: ['ID équipe', 'ID tournoi', 'Tournoi', 'ID division', 'Division', 'Pool', 'Nom', 'École', 'Statut', 'Afficher', 'ID inscription source'],
-    MATCHS: ['ID match', 'ID tournoi', 'Tournoi', 'ID division', 'Division', 'Pool', 'Phase', 'Ronde', 'Date', 'Heure', 'ID lieu', 'Lieu', 'ID équipe domicile', 'Équipe domicile', 'ID équipe visiteuse', 'Équipe visiteuse', 'Score domicile', 'Score visiteuse', 'Résultat final', 'Motif', 'Afficher', 'Code série', 'Source domicile', 'Source visiteuse', 'ID équipe gagnante', 'Équipe gagnante'],
+    MATCHS: ['ID match', 'ID tournoi', 'Tournoi', 'ID division', 'Division', 'Pool', 'Phase', 'Ronde', 'Date', 'Heure', 'ID lieu', 'Lieu', 'ID équipe domicile', 'Équipe domicile', 'ID équipe visiteuse', 'Équipe visiteuse', 'Score domicile', 'Score visiteuse', 'Résultat final', 'Motif', 'ID équipe forfait', 'Équipe forfait', 'Victoire aux tirs au but', 'Afficher', 'Code série', 'Source domicile', 'Source visiteuse', 'ID équipe gagnante', 'Équipe gagnante'],
+    DISCIPLINE: ['ID incident', 'ID tournoi', 'Tournoi', 'ID division', 'Division', 'ID match', 'Match', 'ID équipe', 'Équipe', 'Sanction', 'Actif', 'Notes'],
+    TIRAGES_AU_SORT: ['ID tirage', 'ID tournoi', 'Tournoi', 'ID division', 'Division', 'Pool', 'ID équipe', 'Équipe', 'Priorité', 'Actif', 'Notes'],
     FORMULES_SERIES: ['ID formule', 'ID tournoi', 'Tournoi', 'ID division', 'Division', 'Code match', 'Phase', 'Ordre', 'Source domicile', 'Source visiteuse', 'Actif'],
     PHOTOS: ['ID photo', 'ID tournoi', 'Tournoi', 'URL', 'Titre', 'ID division', 'Division', 'ID équipe', 'Équipe', 'Date', 'Afficher'],
     DONNEES_PUBLIQUES: ['Type', 'ID', 'Ordre', 'Données JSON'],

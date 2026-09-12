@@ -13,6 +13,8 @@ vm.createContext(context);
 const matchHeaders = Array.from(vm.runInContext('APP.headers.MATCHS', context));
 assert.equal(matchHeaders.indexOf('Équipe domicile'), matchHeaders.indexOf('ID équipe domicile') + 1);
 assert.equal(matchHeaders.indexOf('Équipe visiteuse'), matchHeaders.indexOf('ID équipe visiteuse') + 1);
+assert.equal(matchHeaders.indexOf('Équipe forfait'), matchHeaders.indexOf('ID équipe forfait') + 1);
+assert.ok(matchHeaders.includes('Victoire aux tirs au but'));
 
 const lookup = context.buildMatchTeamLookup_([
   { 'ID équipe': 'E01', 'ID tournoi': 'T1', 'ID division': 'D1', Pool: 'A', Nom: 'Les Aigles' },

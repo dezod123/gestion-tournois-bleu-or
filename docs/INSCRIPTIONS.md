@@ -42,7 +42,7 @@ Le formulaire reprend automatiquement :
 - le nom et l'édition du tournoi;
 - les dates;
 - la date limite d'inscription;
-- les frais par équipe;
+- les frais par équipe propres à chaque division;
 - les instructions de paiement;
 - le courriel de contact;
 - les divisions actives du tournoi.
@@ -50,6 +50,8 @@ Le formulaire reprend automatiquement :
 Pour accepter des réponses, le tournoi doit être `ACTIF`, la case `Inscriptions ouvertes` doit être cochée et la date limite ne doit pas être dépassée. Un déclencheur quotidien ferme automatiquement les formulaires arrivés à échéance. Le site masque également le bouton lorsque les inscriptions sont fermées.
 
 Après avoir modifié les divisions, les frais, les dates ou les instructions, utiliser de nouveau **Créer / mettre à jour le formulaire sélectionné**. La commande **Synchroniser tous les formulaires** permet de mettre à jour en lot tous les formulaires déjà créés.
+
+Les frais se configurent d’abord dans `DIVISIONS`, colonne `Frais inscription`. Le montant de `TOURNOIS` sert seulement de valeur de repli lorsqu’une division n’a pas son propre montant. Les frais sont affichés à titre informatif dans la description et l’aide de la question de catégorie; aucun paiement en ligne n’est traité et le montant n’est pas enregistré comme une transaction.
 
 Le thème, les couleurs et le logo peuvent être personnalisés directement dans Google Forms. Ne pas renommer, supprimer ni changer le type des questions gérées par le système; l'importation dépend de leurs titres stables. Les questions ajoutées manuellement ne sont pas importées dans `INSCRIPTIONS`.
 

@@ -17,6 +17,8 @@ Le générateur ne modifie et ne supprime jamais un match existant. Les matchs d
 - `Actif` : la division doit être cochée;
 - `Nombre de pools` : de 1 à 26;
 - `Matchs entre équipes` : nombre de fois où chaque paire d’équipes d’un même pool doit se rencontrer;
+- `Minimum matchs garantis` : minimum vérifié pour chaque équipe avant toute génération (3 en 2026);
+- `Repos minimal (minutes)` : délai facultatif entre la fin d’un match et le début du suivant pour une même équipe; `0` le désactive;
 - `Durée match (minutes)` : valeur facultative qui remplace la durée du tournoi.
 
 ### Dans `EQUIPES`
@@ -61,10 +63,10 @@ Le moteur :
 - ne place rien pendant une pause;
 - ne place jamais deux matchs au même lieu au même moment;
 - ne place jamais une équipe dans deux matchs au même moment;
+- respecte le repos minimal configuré pour la division;
+- refuse une structure de pools qui ne garantit pas le nombre minimal de matchs;
 - considère les matchs existants comme des périodes déjà occupées;
 - conserve les scores, résultats et horaires déjà saisis.
-
-Les équipes peuvent jouer deux matchs consécutifs dans cette première version. Aucun temps de repos minimal n’est imposé, car cette valeur ne fait pas encore partie de la configuration.
 
 ## Messages à corriger
 
@@ -72,6 +74,7 @@ Les équipes peuvent jouer deux matchs consécutifs dans cette première version
 - **Lieu inactif ou inconnu** : corriger `ID lieu` dans `PLAGES_HORAIRES` ou activer le lieu.
 - **Conflit entre des matchs existants** : corriger les heures ou les lieux des matchs indiqués avant de relancer.
 - **Pool hors configuration** : corriger le pool de l’équipe ou augmenter `Nombre de pools`.
+- **Minimum garanti non atteint** : augmenter `Matchs entre équipes` ou modifier le nombre de pools.
 - **Division inactive** : activer la division ou corriger l’équipe qui y est rattachée.
 
 ## Limites intentionnelles
@@ -79,10 +82,8 @@ Les équipes peuvent jouer deux matchs consécutifs dans cette première version
 Cette première version ne gère pas :
 
 - la disponibilité individuelle des équipes;
-- un temps de repos minimal entre deux matchs;
 - les préférences d’heures;
 - les déplacements entre lieux;
-- les phases éliminatoires dépendantes du classement;
 - l’optimisation avancée d’un horaire déjà construit.
 
 Après génération, `MATCHS` demeure la source officielle et reste entièrement modifiable par les administrateurs avant publication.

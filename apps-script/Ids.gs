@@ -6,6 +6,8 @@ const ID_ENTITIES = Object.freeze([
   { sheet: 'INSCRIPTIONS', header: 'ID inscription', prefix: 'INS' },
   { sheet: 'EQUIPES', header: 'ID équipe', prefix: 'EQ' },
   { sheet: 'MATCHS', header: 'ID match', prefix: 'MAT' },
+  { sheet: 'DISCIPLINE', header: 'ID incident', prefix: 'INC' },
+  { sheet: 'TIRAGES_AU_SORT', header: 'ID tirage', prefix: 'TIR' },
   { sheet: 'FORMULES_SERIES', header: 'ID formule', prefix: 'SER' },
   { sheet: 'PHOTOS', header: 'ID photo', prefix: 'PHO' }
 ]);
@@ -141,6 +143,7 @@ function protectSystemColumns_() {
     { sheet: APP.sheets.tournaments, header: 'Dernière mise à jour formulaire' },
     { sheet: APP.sheets.matches, header: 'ID équipe domicile' },
     { sheet: APP.sheets.matches, header: 'ID équipe visiteuse' },
+    { sheet: APP.sheets.matches, header: 'ID équipe forfait' },
     { sheet: APP.sheets.matches, header: 'ID équipe gagnante' },
     { sheet: APP.sheets.matches, header: 'Code série' },
     { sheet: APP.sheets.matches, header: 'Source domicile' },

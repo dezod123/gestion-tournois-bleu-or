@@ -118,7 +118,11 @@ function buildSchedulePlan_(tournament) {
       'Matchs entre équipes de « ' + divisionName + ' »');
     const duration = scheduleInteger_(division['Durée match (minutes)'], defaultDuration, 1, 240,
       'Durée des matchs de « ' + divisionName + ' »');
-    divisionConfigById[divisionId] = { id: divisionId, name: divisionName, duration: duration };
+    const minimumMatches = scheduleInteger_(division['Minimum matchs garantis'], 3, 0, 100,
+      'Minimum de matchs garantis de « ' + divisionName + ' »');
+    const restMinutes = scheduleInteger_(division['Repos minimal (minutes)'], 0, 0, 1440,
+      'Repos minimal de « ' + divisionName + ' »');
+    divisionConfigById[divisionId] = { id: divisionId, name: divisionName, duration: duration, restMinutes: restMinutes };
 
     const divisionTeams = allTournamentTeams.filter(function(team) {
       return String(team['ID division'] || '').trim() === divisionId;
@@ -137,12 +141,19 @@ function buildSchedulePlan_(tournament) {
         warnings.push('« ' + divisionName + ' », pool ' + pool + ' : moins de deux équipes, aucun match généré.');
         return;
       }
+      const matchesPerTeam = (poolTeams.length - 1) * encounters;
+      if (matchesPerTeam < minimumMatches) {
+        throw new Error('« ' + divisionName + ' », pool ' + pool + ' : la configuration donne seulement ' +
+          matchesPerTeam + ' match(s) par équipe, mais le minimum garanti est ' + minimumMatches +
+          '. Augmentez « Matchs entre équipes » ou modifiez les pools.');
+      }
       roundRobinFixtures_(poolTeams, encounters).forEach(function(fixture) {
         fixture.tournamentId = tournamentId;
         fixture.divisionId = divisionId;
         fixture.divisionName = divisionName;
         fixture.pool = pool;
         fixture.duration = duration;
+        fixture.restMinutes = restMinutes;
         expectedFixtures.push(fixture);
       });
     });
@@ -319,11 +330,14 @@ function scheduleAvailabilityWindows_(tournamentId, timeZone) {
 
 function scheduleExistingOccupancy_(matches, divisions, defaultDuration, timeZone) {
   const durations = {};
+  const restMinutes = {};
   divisions.forEach(function(division) {
     const id = String(division['ID division'] || '').trim();
     if (!id) return;
     durations[id] = scheduleInteger_(division['Durée match (minutes)'], defaultDuration, 1, 240,
       'Durée de la division « ' + String(division['Nom'] || id) + ' »');
+    restMinutes[id] = scheduleInteger_(division['Repos minimal (minutes)'], 0, 0, 1440,
+      'Repos minimal de la division « ' + String(division['Nom'] || id) + ' »');
   });
   return matches.map(function(match) {
     const date = toIsoDate_(match['Date'], timeZone);
@@ -332,10 +346,11 @@ function scheduleExistingOccupancy_(matches, divisions, defaultDuration, timeZon
     const awayId = String(match['ID équipe visiteuse'] || '').trim();
     if (!date || !match['Heure'] || !venueId || !homeId || !awayId) return null;
     const start = scheduleTimeToMinutes_(match['Heure'], timeZone, 'Heure du match ' + String(match['ID match'] || ''));
-    const duration = durations[String(match['ID division'] || '').trim()] || defaultDuration;
+    const divisionId = String(match['ID division'] || '').trim();
+    const duration = durations[divisionId] || defaultDuration;
     return {
       source: String(match['ID match'] || 'match existant'), date: date, start: start, end: start + duration,
-      venueId: venueId, homeTeamId: homeId, awayTeamId: awayId
+      venueId: venueId, homeTeamId: homeId, awayTeamId: awayId, restMinutes: restMinutes[divisionId] || 0
     };
   }).filter(Boolean);
 }
@@ -345,12 +360,14 @@ function validateScheduleOccupancy_(occupancy) {
     for (let second = first + 1; second < occupancy.length; second += 1) {
       const a = occupancy[first];
       const b = occupancy[second];
-      if (a.date !== b.date || !scheduleIntervalsOverlap_(a.start, a.end, b.start, b.end)) continue;
+      if (a.date !== b.date) continue;
       const sameVenue = a.venueId === b.venueId;
       const sameTeam = [a.homeTeamId, a.awayTeamId].some(function(teamId) {
         return teamId === b.homeTeamId || teamId === b.awayTeamId;
       });
-      if (sameVenue || sameTeam) {
+      const overlap = scheduleIntervalsOverlap_(a.start, a.end, b.start, b.end);
+      const insufficientRest = sameTeam && scheduleIntervalsTooClose_(a, b);
+      if ((sameVenue && overlap) || insufficientRest) {
         throw new Error('Conflit entre les matchs existants « ' + a.source + ' » et « ' + b.source + ' ». Corrigez-le avant de générer.');
       }
     }
@@ -386,7 +403,8 @@ function scheduleCandidatesForFixture_(fixture, windows) {
     for (let start = window.start; start + fixture.duration <= window.end; start += SCHEDULE_MINUTE_STEP) {
       candidates.push({
         date: window.date, start: start, end: start + fixture.duration, venueId: window.venueId,
-        venueName: window.venueName, homeTeamId: fixture.homeTeamId, awayTeamId: fixture.awayTeamId
+        venueName: window.venueName, homeTeamId: fixture.homeTeamId, awayTeamId: fixture.awayTeamId,
+        restMinutes: fixture.restMinutes || 0
       });
     }
   });
@@ -397,12 +415,22 @@ function scheduleCandidatesForFixture_(fixture, windows) {
 
 function scheduleCandidateConflicts_(candidate, occupancy) {
   return occupancy.some(function(interval) {
-    if (candidate.date !== interval.date || !scheduleIntervalsOverlap_(candidate.start, candidate.end, interval.start, interval.end)) return false;
-    if (candidate.venueId === interval.venueId) return true;
-    return [candidate.homeTeamId, candidate.awayTeamId].some(function(teamId) {
+    if (candidate.date !== interval.date) return false;
+    const overlap = scheduleIntervalsOverlap_(candidate.start, candidate.end, interval.start, interval.end);
+    if (candidate.venueId === interval.venueId && overlap) return true;
+    const sameTeam = [candidate.homeTeamId, candidate.awayTeamId].some(function(teamId) {
       return teamId === interval.homeTeamId || teamId === interval.awayTeamId;
     });
+    return sameTeam && scheduleIntervalsTooClose_(candidate, interval);
   });
+}
+
+function scheduleIntervalsTooClose_(first, second) {
+  if (scheduleIntervalsOverlap_(first.start, first.end, second.start, second.end)) return true;
+  const requiredRest = Math.max(Number(first.restMinutes) || 0, Number(second.restMinutes) || 0);
+  if (!requiredRest) return false;
+  if (first.end <= second.start) return second.start - first.end < requiredRest;
+  return first.start - second.end < requiredRest;
 }
 
 function scheduleIntervalsOverlap_(startA, endA, startB, endB) {

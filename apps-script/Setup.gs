@@ -10,6 +10,7 @@ function initialiserClasseur() {
   }).forEach(function(sheetName) {
     ensureSheetSchema_(spreadsheet, sheetName, APP.headers[sheetName]);
   });
+  seedDivisionRuleDefaults_();
   resetRegistrationFormsForCopiedWorkbook_(spreadsheet);
   seedSettings_();
   const publicSpreadsheet = ensurePublicSpreadsheet_();
@@ -82,7 +83,7 @@ function ensureSheetSchema_(spreadsheet, sheetName, requiredHeaders) {
 function seedSettings_() {
   const defaults = [
     ['VERSION_SCHEMA', '1', 'Version du contrat de données publiques'],
-    ['VERSION_STRUCTURE_ADMIN', '9', 'Version de la structure du classeur administratif'],
+    ['VERSION_STRUCTURE_ADMIN', '10', 'Version de la structure du classeur administratif'],
     ['LANGUE', 'fr-CA', 'Langue principale du site'],
     ['FUSEAU_HORAIRE', 'America/Toronto', 'Fuseau utilisé pour les dates de publication'],
     ['DERNIERE_PUBLICATION', '', 'Mise à jour automatiquement'],
@@ -96,7 +97,34 @@ function seedSettings_() {
   defaults.forEach(function(row) {
     if (current.indexOf(normalize_(row[0])) < 0) sheet.appendRow(row);
   });
-  upsertSetting_('VERSION_STRUCTURE_ADMIN', '9', 'Version de la structure du classeur administratif');
+  upsertSetting_('VERSION_STRUCTURE_ADMIN', '10', 'Version de la structure du classeur administratif');
+}
+
+function seedDivisionRuleDefaults_() {
+  const sheet = adminSpreadsheet_().getSheetByName(APP.sheets.divisions);
+  if (!sheet || sheet.getLastRow() < 2) return;
+  const defaults = {
+    'Minimum matchs garantis': 3,
+    'Points victoire': 3,
+    'Points nul': 1,
+    'Points défaite': 0,
+    'Ordre bris égalité': 'POINTS,FACE_A_FACE,DIFF,BP,BC,FAIR_PLAY,TIRAGE',
+    'Plafond différence par match': 5,
+    'Points carton jaune': 1,
+    'Points deuxième jaune': 3,
+    'Points carton rouge': 3,
+    'Repos minimal (minutes)': 0
+  };
+  const headers = sheetHeaders_(sheet);
+  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).getValues();
+  values.forEach(function(row, rowIndex) {
+    if (!String(row[headers.indexOf('ID division')] || '').trim()) return;
+    Object.keys(defaults).forEach(function(header) {
+      const column = headers.indexOf(header);
+      if (column < 0 || (row[column] !== '' && row[column] != null)) return;
+      sheet.getRange(rowIndex + 2, column + 1).setValue(defaults[header]);
+    });
+  });
 }
 
 function resetRegistrationFormsForCopiedWorkbook_(spreadsheet) {
@@ -118,6 +146,8 @@ function applyValidations_() {
     [APP.sheets.divisions, 'Actif'], [APP.sheets.divisions, 'Afficher'],
     [APP.sheets.venues, 'Actif'], [APP.sheets.venues, 'Afficher'], [APP.sheets.availability, 'Actif'],
     [APP.sheets.teams, 'Afficher'], [APP.sheets.matches, 'Résultat final'],
+    [APP.sheets.matches, 'Victoire aux tirs au but'], [APP.sheets.discipline, 'Actif'],
+    [APP.sheets.tieBreakDraws, 'Actif'],
     [APP.sheets.matches, 'Afficher'], [APP.sheets.playoffFormulas, 'Actif'], [APP.sheets.photos, 'Afficher']
   ].forEach(function(spec) {
     const sheet = spreadsheet.getSheetByName(spec[0]);
@@ -128,6 +158,7 @@ function applyValidations_() {
     [APP.sheets.registrations, 'Statut', ['EN ATTENTE', 'APPROUVÉE', 'REFUSÉE']],
     [APP.sheets.teams, 'Statut', ['APPROUVÉE', 'INACTIVE']],
     [APP.sheets.matches, 'Phase', ['POOL', 'ÉLIMINATOIRE', 'QUART-DE-FINALE', 'DEMI-FINALE', 'FINALE', 'AMICAL']],
+    [APP.sheets.discipline, 'Sanction', ['CARTON JAUNE', 'DEUXIÈME JAUNE', 'CARTON ROUGE DIRECT']],
     [APP.sheets.playoffFormulas, 'Phase', ['ÉLIMINATOIRE', 'QUART-DE-FINALE', 'DEMI-FINALE', 'FINALE']]
   ].forEach(function(spec) {
     const validation = SpreadsheetApp.newDataValidation().requireValueInList(spec[2], true).setAllowInvalid(false).build();
@@ -139,6 +170,14 @@ function applyValidations_() {
   applyValidationToColumn_(spreadsheet.getSheetByName(APP.sheets.tournaments), 'Durée match par défaut (minutes)', positiveNumber);
   applyValidationToColumn_(spreadsheet.getSheetByName(APP.sheets.divisions), 'Durée match (minutes)', positiveNumber);
   applyValidationToColumn_(spreadsheet.getSheetByName(APP.sheets.playoffFormulas), 'Ordre', positiveNumber);
+  applyValidationToColumn_(spreadsheet.getSheetByName(APP.sheets.tieBreakDraws), 'Priorité', positiveNumber);
+
+  const nonNegativeNumber = SpreadsheetApp.newDataValidation().requireNumberGreaterThanOrEqualTo(0).setAllowInvalid(false).build();
+  ['Minimum matchs garantis', 'Points victoire', 'Points nul', 'Points défaite', 'Plafond différence par match',
+    'Points carton jaune', 'Points deuxième jaune', 'Points carton rouge', 'Repos minimal (minutes)', 'Frais inscription']
+    .forEach(function(header) {
+      applyValidationToColumn_(spreadsheet.getSheetByName(APP.sheets.divisions), header, nonNegativeNumber);
+    });
 
   const webUrl = SpreadsheetApp.newDataValidation().requireTextIsUrl().setAllowInvalid(false).build();
   applyValidationToColumn_(spreadsheet.getSheetByName(APP.sheets.photos), 'URL', webUrl);
@@ -209,6 +248,15 @@ function applyReferenceValidations_() {
     [APP.sheets.matches, 'ID équipe visiteuse', APP.sheets.teams, 'ID équipe'],
     [APP.sheets.matches, 'Équipe visiteuse', APP.sheets.teams, 'Nom', true],
     [APP.sheets.matches, 'Équipe gagnante', APP.sheets.teams, 'Nom', true],
+    [APP.sheets.matches, 'ID équipe forfait', APP.sheets.teams, 'ID équipe'],
+    [APP.sheets.matches, 'Équipe forfait', APP.sheets.teams, 'Nom', true],
+    [APP.sheets.discipline, 'ID tournoi', APP.sheets.tournaments, 'ID tournoi'],
+    [APP.sheets.discipline, 'ID division', APP.sheets.divisions, 'ID division'],
+    [APP.sheets.discipline, 'ID match', APP.sheets.matches, 'ID match'],
+    [APP.sheets.discipline, 'ID équipe', APP.sheets.teams, 'ID équipe'],
+    [APP.sheets.tieBreakDraws, 'ID tournoi', APP.sheets.tournaments, 'ID tournoi'],
+    [APP.sheets.tieBreakDraws, 'ID division', APP.sheets.divisions, 'ID division'],
+    [APP.sheets.tieBreakDraws, 'ID équipe', APP.sheets.teams, 'ID équipe'],
     [APP.sheets.playoffFormulas, 'ID tournoi', APP.sheets.tournaments, 'ID tournoi'],
     [APP.sheets.playoffFormulas, 'ID division', APP.sheets.divisions, 'ID division'],
     [APP.sheets.photos, 'ID tournoi', APP.sheets.tournaments, 'ID tournoi'],
@@ -307,9 +355,13 @@ function chargerDonneesDemonstration() {
   }, 2);
   writeObjectRow_(APP.sheets.divisions, {
     'ID division': 'D-DEMO', 'ID tournoi': 'T-DEMO', 'Nom': 'Benjamin masculin',
-    'Actif': true, 'Afficher': true, 'Nombre de pools': 1, 'Matchs entre équipes': 1,
+    'Actif': true, 'Afficher': true, 'Nombre de pools': 1, 'Matchs entre équipes': 2,
+    'Minimum matchs garantis': 3,
     'Équipes qualifiées': 2, 'Points victoire': 3, 'Points nul': 1,
-    'Points défaite': 0, 'Ordre bris égalité': 'POINTS,DIFF,BP,NOM'
+    'Points défaite': 0, 'Ordre bris égalité': 'POINTS,FACE_A_FACE,DIFF,BP,BC,FAIR_PLAY,TIRAGE',
+    'Plafond différence par match': 5, 'Points carton jaune': 1, 'Points deuxième jaune': 3,
+    'Points carton rouge': 3, 'Durée match (minutes)': 30, 'Repos minimal (minutes)': 0,
+    'Frais inscription': 350
   }, 2);
   writeObjectRow_(APP.sheets.venues, {
     'ID lieu': 'GYM-1', 'ID tournoi': 'T-DEMO', 'Nom': 'Gymnase 1',

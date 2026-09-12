@@ -28,6 +28,8 @@ Pour un premier essai sans saisie manuelle, choisir **Tournoi → Charger les do
 
 L'initialisation crée les onglets manquants et ajoute à droite les nouvelles colonnes requises. Elle peut donc être relancée après une mise à jour sans supprimer ni déplacer les données existantes.
 
+Après cette mise à jour, vérifier notamment les nouveaux onglets `DISCIPLINE` et `TIRAGES_AU_SORT`, ainsi que les nouvelles colonnes de `DIVISIONS` et `MATCHS`. Les divisions existantes reçoivent les valeurs réglementaires par défaut sans remplacer leurs autres données.
+
 ## Création et identifiants
 
 - **Tournoi → Créer une nouvelle édition** demande le nom et l'édition, puis crée la ligne `TOURNOIS` avec un identifiant permanent et le statut `INACTIF`.
@@ -41,7 +43,7 @@ La création des Google Forms et leur traitement administratif sont décrits dan
 
 ## Générer un premier horaire
 
-1. Configurer le nombre de pools, les confrontations et la durée dans `DIVISIONS`.
+1. Configurer le nombre de pools, les confrontations, le minimum garanti, la durée et le repos minimal dans `DIVISIONS`.
 2. Vérifier que les équipes approuvées possèdent la bonne division; les pools vides seront équilibrés automatiquement.
 3. Ajouter les lieux actifs et leurs disponibilités dans `PLAGES_HORAIRES`.
 4. Sélectionner la ligne du tournoi dans `TOURNOIS`.
@@ -49,6 +51,8 @@ La création des Google Forms et leur traitement administratif sont décrits dan
 6. Réviser les lignes ajoutées dans `MATCHS`, puis publier manuellement.
 
 Voir [`HORAIRE.md`](HORAIRE.md) pour les règles de placement et les limites actuelles.
+
+Les points, forfaits, cartons, bris d’égalité, tirages au sort et tirs au but sont décrits dans [`REGLEMENTS_ET_CLASSEMENT.md`](REGLEMENTS_ET_CLASSEMENT.md).
 
 ## Publier des photos
 
@@ -62,6 +66,8 @@ Les administrateurs ajoutent dans `PHOTOS` le lien HTTPS d’une image rendue pu
 4. Vérifier la date inscrite dans `PARAMETRES` et les lignes générées dans le classeur public séparé.
 
 Les scores incomplets et les matchs dont la case `Résultat final` n'est pas cochée ne sont pas utilisés dans le classement public.
+
+Une page publique déjà ouverte vérifie automatiquement le CSV toutes les 60 secondes et affiche le nouvel instantané lorsqu’il devient disponible. Cette vérification ne lance aucun script; elle ne remplace pas la commande administrative de publication.
 
 ## Publier les séries et les champions
 

@@ -24,5 +24,12 @@ const html = fs.readFileSync(path.join(root, 'site', 'index.html'), 'utf8');
 assert.match(html, /data-tab="playoffs"/);
 assert.match(html, /id="champions-content"/);
 assert.match(html, /id="playoffs-content"/);
+assert.match(html, /id="venue-filter"/);
+const config = fs.readFileSync(path.join(root, 'site', 'config.js'), 'utf8');
+assert.match(config, /REFRESH_INTERVAL_MS:\s*60000/);
+const source = fs.readFileSync(path.join(root, 'site', 'app.js'), 'utf8');
+assert.match(source, /visibilitychange/);
+assert.match(source, /setInterval\(refreshPublicData/);
+assert.match(source, /aux tirs au but/);
 
 console.log('Public playoff tests passed.');
