@@ -20,6 +20,7 @@ function initialiserClasseur() {
   protectSystemColumns_();
   styleAdminReferenceColumns_(spreadsheet);
   styleMatchTeamNameColumns_(spreadsheet);
+  stylePlayoffConfiguration_(spreadsheet);
   stylePublicSheet_(publicSpreadsheet);
   onOpen();
   spreadsheet.toast(
@@ -81,7 +82,7 @@ function ensureSheetSchema_(spreadsheet, sheetName, requiredHeaders) {
 function seedSettings_() {
   const defaults = [
     ['VERSION_SCHEMA', '1', 'Version du contrat de données publiques'],
-    ['VERSION_STRUCTURE_ADMIN', '8', 'Version de la structure du classeur administratif'],
+    ['VERSION_STRUCTURE_ADMIN', '9', 'Version de la structure du classeur administratif'],
     ['LANGUE', 'fr-CA', 'Langue principale du site'],
     ['FUSEAU_HORAIRE', 'America/Toronto', 'Fuseau utilisé pour les dates de publication'],
     ['DERNIERE_PUBLICATION', '', 'Mise à jour automatiquement'],
@@ -95,7 +96,7 @@ function seedSettings_() {
   defaults.forEach(function(row) {
     if (current.indexOf(normalize_(row[0])) < 0) sheet.appendRow(row);
   });
-  upsertSetting_('VERSION_STRUCTURE_ADMIN', '8', 'Version de la structure du classeur administratif');
+  upsertSetting_('VERSION_STRUCTURE_ADMIN', '9', 'Version de la structure du classeur administratif');
 }
 
 function resetRegistrationFormsForCopiedWorkbook_(spreadsheet) {
@@ -117,7 +118,7 @@ function applyValidations_() {
     [APP.sheets.divisions, 'Actif'], [APP.sheets.divisions, 'Afficher'],
     [APP.sheets.venues, 'Actif'], [APP.sheets.venues, 'Afficher'], [APP.sheets.availability, 'Actif'],
     [APP.sheets.teams, 'Afficher'], [APP.sheets.matches, 'Résultat final'],
-    [APP.sheets.matches, 'Afficher'], [APP.sheets.photos, 'Afficher']
+    [APP.sheets.matches, 'Afficher'], [APP.sheets.playoffFormulas, 'Actif'], [APP.sheets.photos, 'Afficher']
   ].forEach(function(spec) {
     const sheet = spreadsheet.getSheetByName(spec[0]);
     applyValidationToColumn_(sheet, spec[1], checkboxValidation);
@@ -126,7 +127,8 @@ function applyValidations_() {
     [APP.sheets.tournaments, 'Statut', ['ACTIF', 'INACTIF']],
     [APP.sheets.registrations, 'Statut', ['EN ATTENTE', 'APPROUVÉE', 'REFUSÉE']],
     [APP.sheets.teams, 'Statut', ['APPROUVÉE', 'INACTIVE']],
-    [APP.sheets.matches, 'Phase', ['POOL', 'ÉLIMINATOIRE', 'QUART-DE-FINALE', 'DEMI-FINALE', 'FINALE', 'AMICAL']]
+    [APP.sheets.matches, 'Phase', ['POOL', 'ÉLIMINATOIRE', 'QUART-DE-FINALE', 'DEMI-FINALE', 'FINALE', 'AMICAL']],
+    [APP.sheets.playoffFormulas, 'Phase', ['ÉLIMINATOIRE', 'QUART-DE-FINALE', 'DEMI-FINALE', 'FINALE']]
   ].forEach(function(spec) {
     const validation = SpreadsheetApp.newDataValidation().requireValueInList(spec[2], true).setAllowInvalid(false).build();
     const sheet = spreadsheet.getSheetByName(spec[0]);
@@ -136,6 +138,7 @@ function applyValidations_() {
   const positiveNumber = SpreadsheetApp.newDataValidation().requireNumberGreaterThan(0).setAllowInvalid(false).build();
   applyValidationToColumn_(spreadsheet.getSheetByName(APP.sheets.tournaments), 'Durée match par défaut (minutes)', positiveNumber);
   applyValidationToColumn_(spreadsheet.getSheetByName(APP.sheets.divisions), 'Durée match (minutes)', positiveNumber);
+  applyValidationToColumn_(spreadsheet.getSheetByName(APP.sheets.playoffFormulas), 'Ordre', positiveNumber);
 
   const webUrl = SpreadsheetApp.newDataValidation().requireTextIsUrl().setAllowInvalid(false).build();
   applyValidationToColumn_(spreadsheet.getSheetByName(APP.sheets.photos), 'URL', webUrl);
@@ -205,6 +208,9 @@ function applyReferenceValidations_() {
     [APP.sheets.matches, 'Équipe domicile', APP.sheets.teams, 'Nom', true],
     [APP.sheets.matches, 'ID équipe visiteuse', APP.sheets.teams, 'ID équipe'],
     [APP.sheets.matches, 'Équipe visiteuse', APP.sheets.teams, 'Nom', true],
+    [APP.sheets.matches, 'Équipe gagnante', APP.sheets.teams, 'Nom', true],
+    [APP.sheets.playoffFormulas, 'ID tournoi', APP.sheets.tournaments, 'ID tournoi'],
+    [APP.sheets.playoffFormulas, 'ID division', APP.sheets.divisions, 'ID division'],
     [APP.sheets.photos, 'ID tournoi', APP.sheets.tournaments, 'ID tournoi'],
     [APP.sheets.photos, 'ID division', APP.sheets.divisions, 'ID division'],
     [APP.sheets.photos, 'ID équipe', APP.sheets.teams, 'ID équipe']

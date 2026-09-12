@@ -24,6 +24,8 @@ const headers = JSON.parse(vm.runInContext('JSON.stringify(APP.headers)', contex
   ['MATCHS', 'ID tournoi', 'Tournoi'],
   ['MATCHS', 'ID division', 'Division'],
   ['MATCHS', 'ID lieu', 'Lieu'],
+  ['FORMULES_SERIES', 'ID tournoi', 'Tournoi'],
+  ['FORMULES_SERIES', 'ID division', 'Division'],
   ['PHOTOS', 'ID tournoi', 'Tournoi'],
   ['PHOTOS', 'ID division', 'Division'],
   ['PHOTOS', 'ID équipe', 'Équipe']

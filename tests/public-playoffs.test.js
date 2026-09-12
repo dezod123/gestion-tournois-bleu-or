@@ -18,6 +18,7 @@ assert.equal(logic.championTeamId({ final: true, homeScore: 1, awayScore: 3, hom
 assert.equal(logic.championTeamId({ final: true, homeScore: 2, awayScore: 2, homeTeamId: 'E1', awayTeamId: 'E2' }), '');
 assert.equal(logic.championTeamId({ final: true, homeScore: null, awayScore: null, homeTeamId: 'E1', awayTeamId: 'E2' }), '');
 assert.equal(logic.championTeamId({ final: false, homeScore: 4, awayScore: 2, homeTeamId: 'E1', awayTeamId: 'E2' }), '');
+assert.equal(logic.championTeamId({ final: true, homeScore: 2, awayScore: 2, winnerTeamId: 'E2', homeTeamId: 'E1', awayTeamId: 'E2' }), 'E2');
 
 const html = fs.readFileSync(path.join(root, 'site', 'index.html'), 'utf8');
 assert.match(html, /data-tab="playoffs"/);

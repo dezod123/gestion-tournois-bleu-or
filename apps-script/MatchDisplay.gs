@@ -44,7 +44,7 @@ function migrateMatchTeamColumns_(sheet, legacyIdHeader, legacyNameHeader, techn
 function styleMatchTeamNameColumns_(spreadsheet) {
   const sheet = spreadsheet.getSheetByName(APP.sheets.matches);
   if (!sheet) return;
-  ['Équipe domicile', 'Équipe visiteuse'].forEach(function(header) {
+  ['Équipe domicile', 'Équipe visiteuse', 'Équipe gagnante'].forEach(function(header) {
     const column = headerColumn_(sheet, header);
     sheet.getRange(2, column, Math.max(sheet.getMaxRows() - 1, 1), 1).setBackground('#ffffff');
     sheet.getRange(1, column).setNote('Sélectionnez le nom de l’équipe. L’ID voisin est rempli automatiquement lors de la synchronisation ou de la publication.');
@@ -58,14 +58,18 @@ function refreshMatchTeamNamesFromIds_(spreadsheet) {
   const rowCount = matchSheet.getLastRow() - 1;
   const homeIds = matchSheet.getRange(2, headerColumn_(matchSheet, 'ID équipe domicile'), rowCount, 1).getValues();
   const awayIds = matchSheet.getRange(2, headerColumn_(matchSheet, 'ID équipe visiteuse'), rowCount, 1).getValues();
+  const winnerIds = matchSheet.getRange(2, headerColumn_(matchSheet, 'ID équipe gagnante'), rowCount, 1).getValues();
   const homeNames = [];
   const awayNames = [];
+  const winnerNames = [];
   for (let index = 0; index < rowCount; index += 1) {
     homeNames.push([matchTeamNameForId_(homeIds[index][0], teamLookup.byId)]);
     awayNames.push([matchTeamNameForId_(awayIds[index][0], teamLookup.byId)]);
+    winnerNames.push([matchTeamNameForId_(winnerIds[index][0], teamLookup.byId)]);
   }
   matchSheet.getRange(2, headerColumn_(matchSheet, 'Équipe domicile'), rowCount, 1).setValues(homeNames);
   matchSheet.getRange(2, headerColumn_(matchSheet, 'Équipe visiteuse'), rowCount, 1).setValues(awayNames);
+  matchSheet.getRange(2, headerColumn_(matchSheet, 'Équipe gagnante'), rowCount, 1).setValues(winnerNames);
   return homeIds.filter(function(row, index) { return row[0] || awayIds[index][0]; }).length;
 }
 
@@ -79,7 +83,8 @@ function synchroniserSelectionsEquipesMatchs_(spreadsheet) {
   matches.forEach(function(match) {
     const hasTeams = [
       match['ID équipe domicile'], match['Équipe domicile'],
-      match['ID équipe visiteuse'], match['Équipe visiteuse']
+      match['ID équipe visiteuse'], match['Équipe visiteuse'],
+      match['ID équipe gagnante'], match['Équipe gagnante']
     ].some(function(value) { return String(value || '').trim(); });
     if (!matchHasBusinessData_(match) || !hasTeams) return;
     try {
@@ -90,8 +95,14 @@ function synchroniserSelectionsEquipesMatchs_(spreadsheet) {
       };
       const home = resolveMatchTeamSelection_(context, match['ID équipe domicile'], match['Équipe domicile'], teamLookup);
       const away = resolveMatchTeamSelection_(context, match['ID équipe visiteuse'], match['Équipe visiteuse'], teamLookup);
+      const winner = isYes_(match['Résultat final'])
+        ? resolveMatchTeamSelection_(context, match['ID équipe gagnante'], match['Équipe gagnante'], teamLookup)
+        : { id: '', name: '' };
       if (home.id && away.id && home.id === away.id) throw new Error('les équipes domicile et visiteuse doivent être différentes.');
-      updates.push({ row: match.__row, home: home, away: away });
+      if (winner.id && winner.id !== home.id && winner.id !== away.id) {
+        throw new Error('l’équipe gagnante doit être l’une des deux équipes du match.');
+      }
+      updates.push({ row: match.__row, home: home, away: away, winner: winner });
     } catch (error) {
       errors.push('MATCHS, ligne ' + match.__row + ' : ' + (error.message || String(error)));
     }
@@ -166,7 +177,9 @@ function writeMatchTeamSelectionUpdates_(sheet, updates) {
     ['ID équipe domicile', function(update) { return update.home.id; }],
     ['Équipe domicile', function(update) { return update.home.name; }],
     ['ID équipe visiteuse', function(update) { return update.away.id; }],
-    ['Équipe visiteuse', function(update) { return update.away.name; }]
+    ['Équipe visiteuse', function(update) { return update.away.name; }],
+    ['ID équipe gagnante', function(update) { return update.winner.id; }],
+    ['Équipe gagnante', function(update) { return update.winner.name; }]
   ];
   const updateByRow = {};
   updates.forEach(function(update) { updateByRow[update.row] = update; });

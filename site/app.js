@@ -158,8 +158,8 @@
     const venueIndex = Object.fromEntries(state.data.lieu.map(function (venue) { return [venue.id,venue]; }));
     const divisionIndex = Object.fromEntries(state.data.division.map(function (division) { return [division.id,division]; }));
     return matches.map(function (match) {
-      const home = teamIndex[match.homeTeamId] || { name: match.homeTeamId };
-      const away = teamIndex[match.awayTeamId] || { name: match.awayTeamId };
+      const home = teamIndex[match.homeTeamId] || { name: match.homeTeamId || match.homeSource || 'À déterminer' };
+      const away = teamIndex[match.awayTeamId] || { name: match.awayTeamId || match.awaySource || 'À déterminer' };
       const division = divisionIndex[match.divisionId] || { name: '' };
       const venue = venueIndex[match.venueId] || { name: '' };
       const status = match.final ? '<span class="badge">Final</span>' : escapeHtml(match.time || 'Heure à confirmer');
@@ -226,6 +226,7 @@
 
   function championTeamId(match) {
     if (!match || !match.final) return '';
+    if (match.winnerTeamId) return String(match.winnerTeamId);
     if (match.homeScore === '' || match.homeScore == null || match.awayScore === '' || match.awayScore == null) return '';
     const home = Number(match.homeScore);
     const away = Number(match.awayScore);

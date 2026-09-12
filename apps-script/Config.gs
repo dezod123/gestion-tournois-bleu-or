@@ -1,5 +1,5 @@
 const APP = Object.freeze({
-  version: '0.11.0',
+  version: '0.12.0',
   locale: 'fr-CA',
   sheets: Object.freeze({
     settings: 'PARAMETRES',
@@ -10,6 +10,7 @@ const APP = Object.freeze({
     registrations: 'INSCRIPTIONS',
     teams: 'EQUIPES',
     matches: 'MATCHS',
+    playoffFormulas: 'FORMULES_SERIES',
     photos: 'PHOTOS',
     publicData: 'DONNEES_PUBLIQUES',
     publicationLog: 'JOURNAL_PUBLICATION'
@@ -28,7 +29,8 @@ const APP = Object.freeze({
     PLAGES_HORAIRES: ['ID plage', 'ID tournoi', 'Tournoi', 'ID lieu', 'Lieu', 'Date', 'Heure début', 'Heure fin', 'Pause début', 'Pause fin', 'Actif', 'Notes'],
     INSCRIPTIONS: ['ID inscription', 'Horodatage', 'ID tournoi', 'Tournoi', 'Nom équipe', 'École', 'Adresse', 'Ville', 'Code postal', 'Responsable', 'Téléphone', 'Courriel', 'ID division', 'Division', 'Nombre équipes', 'Statut', 'Notes internes', 'ID soumission', 'Date traitement', 'Compte traitement', 'ID réponse formulaire'],
     EQUIPES: ['ID équipe', 'ID tournoi', 'Tournoi', 'ID division', 'Division', 'Pool', 'Nom', 'École', 'Statut', 'Afficher', 'ID inscription source'],
-    MATCHS: ['ID match', 'ID tournoi', 'Tournoi', 'ID division', 'Division', 'Pool', 'Phase', 'Ronde', 'Date', 'Heure', 'ID lieu', 'Lieu', 'ID équipe domicile', 'Équipe domicile', 'ID équipe visiteuse', 'Équipe visiteuse', 'Score domicile', 'Score visiteuse', 'Résultat final', 'Motif', 'Afficher'],
+    MATCHS: ['ID match', 'ID tournoi', 'Tournoi', 'ID division', 'Division', 'Pool', 'Phase', 'Ronde', 'Date', 'Heure', 'ID lieu', 'Lieu', 'ID équipe domicile', 'Équipe domicile', 'ID équipe visiteuse', 'Équipe visiteuse', 'Score domicile', 'Score visiteuse', 'Résultat final', 'Motif', 'Afficher', 'Code série', 'Source domicile', 'Source visiteuse', 'ID équipe gagnante', 'Équipe gagnante'],
+    FORMULES_SERIES: ['ID formule', 'ID tournoi', 'Tournoi', 'ID division', 'Division', 'Code match', 'Phase', 'Ordre', 'Source domicile', 'Source visiteuse', 'Actif'],
     PHOTOS: ['ID photo', 'ID tournoi', 'Tournoi', 'URL', 'Titre', 'ID division', 'Division', 'ID équipe', 'Équipe', 'Date', 'Afficher'],
     DONNEES_PUBLIQUES: ['Type', 'ID', 'Ordre', 'Données JSON'],
     JOURNAL_PUBLICATION: ['Horodatage', 'Compte', 'Version', 'Objets publiés', 'Statut', 'Message']

@@ -65,9 +65,9 @@ Les scores incomplets et les matchs dont la case `Résultat final` n'est pas coc
 
 ## Publier les séries et les champions
 
-Les matchs éliminatoires peuvent être ajoutés manuellement dans `MATCHS` en choisissant la phase `ÉLIMINATOIRE`, `QUART-DE-FINALE`, `DEMI-FINALE` ou `FINALE`. La page publique les regroupe dans l'onglet **Séries**.
+Dans `DIVISIONS`, définir le nombre de pools et d’équipes qualifiées, puis sélectionner la division et choisir **Tournoi → Créer la formule de séries de la division sélectionnée**. Le système peut générer une formule standard pour un seul pool, même avec un nombre impair de qualifiés, ainsi que le croisement demandé pour deux pools et quatre qualifiés.
 
-Lorsqu'une finale possède deux scores différents et que `Résultat final` est coché, son gagnant apparaît automatiquement parmi les champions. Une finale à égalité ne produit pas de champion tant que le résultat décisif n'est pas inscrit.
+Les autres placements sont configurables dans `FORMULES_SERIES`. Lors de la publication, le système transforme automatiquement le classement en équipes qualifiées, fait progresser les gagnants et affiche le champion. Voir [`SERIES.md`](SERIES.md) pour les sources acceptées, les exemptions et les corrections de score.
 
 ## Rendre l'instantané lisible par GitHub Pages
 

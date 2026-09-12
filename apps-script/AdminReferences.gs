@@ -19,6 +19,10 @@ function adminReferenceSheetSpecs_() {
       adminReference_('division', 'ID division', 'Division'),
       adminReference_('venue', 'ID lieu', 'Lieu')
     ] },
+    { sheet: APP.sheets.playoffFormulas, references: [
+      adminReference_('tournament', 'ID tournoi', 'Tournoi'),
+      adminReference_('division', 'ID division', 'Division')
+    ] },
     { sheet: APP.sheets.photos, references: [
       adminReference_('tournament', 'ID tournoi', 'Tournoi'),
       adminReference_('division', 'ID division', 'Division'),

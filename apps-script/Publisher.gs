@@ -15,6 +15,8 @@ function publierChangements() {
     SpreadsheetApp.flush();
     synchroniserSelectionsEquipesMatchs_(adminSpreadsheet_());
     SpreadsheetApp.flush();
+    mettreAJourSeriesAutomatiques_();
+    SpreadsheetApp.flush();
     const snapshot = buildPublicSnapshot_();
     if (snapshot.errors.length) {
       appendPublicationLog_('ERREUR', snapshot.errors.join(' | '), 0);
@@ -105,7 +107,10 @@ function buildPublicSnapshot_() {
       venueId: String(row['ID lieu'] || ''), homeTeamId: String(row['ID équipe domicile']), awayTeamId: String(row['ID équipe visiteuse']),
       homeScore: finalResult ? toNumber_(row['Score domicile'], null) : null,
       awayScore: finalResult ? toNumber_(row['Score visiteuse'], null) : null,
-      final: finalResult, reason: finalResult ? String(row['Motif'] || '') : '' }));
+      final: finalResult, reason: finalResult ? String(row['Motif'] || '') : '',
+      seriesCode: String(row['Code série'] || ''), homeSource: String(row['Source domicile'] || ''),
+      awaySource: String(row['Source visiteuse'] || ''),
+      winnerTeamId: finalResult ? String(row['ID équipe gagnante'] || '') : '' }));
   });
   divisions.forEach(function(division) {
     calculateStandings_(division, teams, matches).forEach(function(row, index) {
@@ -131,14 +136,26 @@ function validatePublicData_(tournaments, divisions, teams, matches, photos, div
     const label = APP.sheets.matches + ' ligne ' + match.__row;
     const home = String(match['ID équipe domicile'] || '');
     const away = String(match['ID équipe visiteuse'] || '');
-    if (!teamIds.has(home)) errors.push(label + ' : équipe domicile inconnue (' + home + ').');
-    if (!teamIds.has(away)) errors.push(label + ' : équipe visiteuse inconnue (' + away + ').');
+    const generatedPlayoff = Boolean(String(match['Code série'] || '').trim() &&
+      String(match['Source domicile'] || '').trim() && String(match['Source visiteuse'] || '').trim());
+    if (home && !teamIds.has(home)) errors.push(label + ' : équipe domicile inconnue (' + home + ').');
+    if (away && !teamIds.has(away)) errors.push(label + ' : équipe visiteuse inconnue (' + away + ').');
+    if (!home && !generatedPlayoff) errors.push(label + ' : équipe domicile obligatoire.');
+    if (!away && !generatedPlayoff) errors.push(label + ' : équipe visiteuse obligatoire.');
     if (home && home === away) errors.push(label + ' : une équipe ne peut pas jouer contre elle-même.');
     if (isYes_(match['Résultat final'])) {
       const homeScore = toNumber_(match['Score domicile'], null);
       const awayScore = toNumber_(match['Score visiteuse'], null);
       if (homeScore === null || awayScore === null || homeScore < 0 || awayScore < 0) {
         errors.push(label + ' : un résultat final exige deux scores positifs ou nuls.');
+      }
+      if (!home || !away) errors.push(label + ' : un résultat final exige deux équipes connues.');
+      const winnerId = String(match['ID équipe gagnante'] || '').trim();
+      if (winnerId && winnerId !== home && winnerId !== away) errors.push(label + ' : équipe gagnante invalide.');
+      const scoreWinnerId = homeScore > awayScore ? home : (awayScore > homeScore ? away : '');
+      if (scoreWinnerId && winnerId && winnerId !== scoreWinnerId) errors.push(label + ' : l’équipe gagnante contredit le score.');
+      if (normalize_(match['Phase']) !== 'POOL' && homeScore === awayScore && !winnerId) {
+        errors.push(label + ' : sélectionnez l’équipe gagnante du match éliminatoire à égalité.');
       }
     }
   });
